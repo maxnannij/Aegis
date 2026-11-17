@@ -680,6 +680,15 @@ canvas.addEventListener('pointerdown', (ev) => {
     draw();
     return;
   }
+  if (tile === TILE.WALL && ev.button !== 2) {
+    if (map.removeWall(x, y)) {
+      gold += 2;
+      updateGoldHud();
+      setBuildHint('Muro vendido: recuperaste 2 de oro.');
+    }
+    draw();
+    return;
+  }
   if (tile === TILE.TOWER) {
     selectedTowerKey = key;
     document.getElementById('selected-tower-actions').hidden = false;
