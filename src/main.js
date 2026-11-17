@@ -81,10 +81,7 @@ let currentWave = 0;
 let waveState = 'ready'; // ready | running | complete
 let spawnRemaining = 0;
 let spawnTimer = 0;
-let waveSpawned = 0;
 let waveResolved = 0;
-let waveElapsed = 0;
-let waveUiSignature = '';
 
 
 // Gnoll sprite (subí el archivo en assets/enemies/Gnoll.png)
@@ -306,7 +303,6 @@ function draw(now = performance.now()) {
 
 function update(dt) {
   if (waveState === 'running') {
-    waveElapsed += dt;
     spawnTimer -= dt;
     if (spawnRemaining > 0 && spawnTimer <= 0) {
       const wave = waves[currentWave - 1];
@@ -316,7 +312,6 @@ function update(dt) {
         hp: wave.hp, speed: wave.speed, damage: wave.damage,
       }));
       spawnRemaining--;
-      waveSpawned++;
       spawnTimer = 0.82;
     }
   }
@@ -401,9 +396,7 @@ function startWave() {
   const wave = waves[currentWave - 1];
   waveState = 'running';
   spawnRemaining = wave.count;
-  waveSpawned = 0;
   waveResolved = 0;
-  waveElapsed = 0;
   spawnTimer = 0.15;
   renderWavePanel();
 }
@@ -417,8 +410,8 @@ function renderWaveProgress() {
   if (fill) fill.style.width = progress + '%';
   if (progressText) {
     progressText.textContent = waveState === 'ready' ? 'Sin iniciar'
-      : waveState === 'running' ? `${waveResolved} / ${total} derrotados`
-      : 'Oleada superada';
+      : waveState === 'running' ? `${waveResolved} / ${total} procesados`
+      : 'Oleada finalizada';
   }
   if (alive) alive.textContent = waveState === 'running'
     ? `${enemies.length + spawnRemaining} restantes`
@@ -435,7 +428,7 @@ function renderWavePanel() {
   current.textContent = `${currentWave} / ${WAVE_TOTAL}`;
   number.textContent = String(currentWave || 1).padStart(2, '0');
   title.textContent = waveState === 'running' ? 'En curso'
-    : waveState === 'complete' ? 'Completada'
+    : waveState === 'complete' ? 'Finalizada'
     : currentWave === 0 ? 'Preparado' : 'Siguiente';
   detail.textContent = waveState === 'running'
     ? `Oleada ${currentWave} · ${waves[currentWave - 1].count} enemigos`
