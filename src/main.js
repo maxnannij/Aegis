@@ -465,9 +465,12 @@ function renderGemInventory() {
         selectedInventoryGem = gem.id;
         selectedInventoryGem2 = null;
       }
+      if (selectedTowerKey && selectedInventoryGem && !selectedInventoryGem2) {
+        if (socketGemOnTower(selectedTowerKey)) { draw(); return; }
+      }
       renderGemInventory();
       setBuildHint(selectedInventoryGem2 ? 'Dos gemas seleccionadas. Fusioná si son del mismo tipo y nivel.' :
-        selectedInventoryGem ? 'Gema seleccionada: tocá una torre vacía para engarzarla. Elegí otra para preparar una fusión.' :
+        selectedInventoryGem ? 'Gema seleccionada: elegí una torre vacía para engarzarla.' :
         'Seleccioná una gema del inventario.');
     });
     inventory.appendChild(button);
@@ -663,48 +666,16 @@ function handleMapClick(ev) {
     else if (tile === TILE.TOWER) sellTowerAt(x, y);
     draw(); return;
   }
-  if (tile === TILE.WALL) {
-    if (map.removeWall(x, y)) { gold += 2; updateGoldHud(); setBuildHint('Muro vendido: recuperaste 2 de oro.'); }
-    draw(); return;
-  }
-  if (tile === TILE.TOWER) {
-    selectedTowerKey = key; panel.hidden = false; fab.setAttribute('aria-expanded', 'true');
-    document.getElementById('selected-tower-actions').hidden = false;
-    if (selectedInventoryGem) socketGemOnTower(key);
-    else setBuildHint('Torre seleccionada. Elegí una gema del inventario para engarzarla.');
-    draw(); return;
-  }
-  selectedTowerKey = null;
-  document.getElementById('selected-tower-actions').hidden = true;
-  if (buildSelection === 'wall') {
-    if (tile !== TILE.PATH) return;
-    if (gold < WALL_COST) { setBuildHint('Oro insuficiente para construir un muro.'); return; }
-    if (map.placeWall(x, y, 100)) { gold -= WALL_COST; updateGoldHud(); }
-  } else if (buildSelection === 'tower') {
-    if (tile !== TILE.EMPTY) return;
-    if (gold < TOWER_COST) { setBuildHint('Oro insuficiente para construir una torre.'); return; }
-    map.set(x, y, TILE.TOWER); placedTowers.set(key, null); gold -= TOWER_COST;
-    selectedTowerKey = key; updateGoldHud();
-  }
-  draw();
+  showTileActions(tile, x, y, key);
 }
 
 canvas.addEventListener('contextmenu', ev => ev.preventDefault());
 
-// Gestos móviles sin conflictos: un dedo construye; dos dedos desplazan y pellizcan.
-// El modo Mano habilita el desplazamiento con un dedo cuando el jugador lo necesita.
+// Gestos móviles: un dedo selecciona casilleros; dos dedos desplazan y pellizcan.
+// El arrastre con un solo dedo nunca mueve la cámara ni construye accidentalmente.
 const activePointers = new Map();
-let handMode = false;
 let gestureState = null;
 let suppressNextTap = false;
-const handButton = document.getElementById('pan-mode');
-handButton.addEventListener('click', () => {
-  handMode = !handMode;
-  handButton.classList.toggle('active', handMode);
-  handButton.setAttribute('aria-pressed', String(handMode));
-  handButton.textContent = handMode ? '✋' : '☝';
-  handButton.setAttribute('aria-label', handMode ? 'Desactivar modo desplazamiento' : 'Activar modo desplazamiento');
-});
 
 function clampCamera() {
   const minX = canvas.width * (1 - camera.zoom);
@@ -741,7 +712,7 @@ canvas.addEventListener('pointerdown', ev => {
   if (activePointers.size === 2 && ev.pointerType !== 'mouse') beginPinch();
   else if (activePointers.size === 1) {
     const p=activePointers.get(ev.pointerId);
-    gestureState={type:(ev.pointerType==='mouse'&&ev.button===1)||(ev.pointerType!=='mouse'&&handMode)?'pan':'tap',id:ev.pointerId};
+    gestureState={type:(ev.pointerType==='mouse'&&ev.button===1)?'pan':'tap',id:ev.pointerId};
   } else {
     gestureState={type:'ignore'};
     suppressNextTap=true;
@@ -938,6 +909,7 @@ buildRoot.innerHTML = `
       <button type="button" data-category="tower">Torres</button>
       <button type="button" data-category="gem">Gemas</button>
     </div>
+    <div id="context-title" class="context-title" hidden></div>
     <div id="build-options"></div>
     <div id="selected-tower-actions" hidden>
       <button id="sell-selected-tower" type="button">Vender torre · +18 oro</button>
@@ -1004,7 +976,89 @@ function setBuildCategory(category) {
   updateGoldHud();
 }
 panel.querySelectorAll('[data-category]').forEach(btn => btn.addEventListener('click', () => setBuildCategory(btn.dataset.category)));
-hint.textContent = 'Elegí Muros, Torres o Gemas para comenzar a construir.';
+
+function showTileActions(tile, x, y, key) {
+  const categories = panel.querySelector('.build-categories');
+  const title = document.getElementById('context-title');
+  const sellActions = document.getElementById('selected-tower-actions');
+  const forge = document.getElementById('gem-forge');
+  const addAction = (label, action, disabled = false) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'build-option';
+    button.textContent = label;
+    button.disabled = disabled;
+    button.addEventListener('click', action);
+    options.appendChild(button);
+  };
+  const openPanel = () => { panel.hidden = false; fab.setAttribute('aria-expanded', 'true'); };
+  selectedTowerKey = null;
+  buildSelection = null;
+  options.replaceChildren();
+  forge.hidden = true;
+  sellActions.hidden = true;
+  categories.hidden = true;
+  title.hidden = false;
+
+  if (tile === TILE.PATH) {
+    title.textContent = 'Camino · ¿Qué querés colocar?';
+    addAction('🧱 Colocar muro · 4 oro', () => {
+      if (gold < WALL_COST) { setBuildHint('Oro insuficiente para construir un muro.'); return; }
+      if (map.placeWall(x, y, 100)) { gold -= WALL_COST; updateGoldHud(); setBuildHint('Muro colocado.'); draw(); closeBuild(); }
+    }, gold < WALL_COST);
+  } else if (tile === TILE.EMPTY) {
+    title.textContent = 'Terreno · ¿Qué querés colocar?';
+    addAction('♜ Colocar torre · 30 oro', () => {
+      if (gold < TOWER_COST) { setBuildHint('Oro insuficiente para construir una torre.'); return; }
+      map.set(x, y, TILE.TOWER); placedTowers.set(key, null); gold -= TOWER_COST;
+      updateGoldHud(); setBuildHint('Torre construida. Tocala para engarzar una gema.'); draw(); closeBuild();
+    }, gold < TOWER_COST);
+  } else if (tile === TILE.TOWER) {
+    selectedTowerKey = key;
+    const gem = placedTowers.get(key);
+    title.textContent = gem ? 'Torre con gema' : 'Torre vacía';
+    if (gem) {
+      addAction('💎 Quitar gema (devolver al inventario)', () => {
+        if (playerGems.length >= INVENTORY_LIMIT) { setBuildHint('Inventario lleno: no se puede recuperar la gema.'); return; }
+        playerGems.push(gem); placedTowers.set(key, null); renderGemInventory();
+        setBuildHint('Gema devuelta al inventario.'); draw(); closeBuild();
+      }, playerGems.length >= INVENTORY_LIMIT);
+      addAction('✖ Destruir gema', () => {
+        placedTowers.set(key, null); setBuildHint('Gema destruida.'); draw(); closeBuild();
+      });
+    } else {
+      addAction('💎 Colocar gema', () => {
+        forge.hidden = false;
+        const shop = document.getElementById('gem-shop');
+        shop.replaceChildren();
+        for (const id of GEM_TYPE_LIST) {
+          const g = GEM_TYPES[id], button = document.createElement('button');
+          button.type = 'button'; button.className = 'gem-choice'; button.dataset.cost = GEM_COST;
+          button.innerHTML = '<i style="--gem-color:' + g.color + '"></i><span>' + g.nameEs + ' · 25 oro</span>';
+          button.addEventListener('click', () => forgeGem(id));
+          shop.appendChild(button);
+        }
+        renderGemInventory();
+        setBuildHint('Elegí una gema del inventario para engarzarla, o forjá una nueva.');
+      }, !playerGems.length && gold < GEM_COST);
+    }
+    sellActions.hidden = false;
+    document.getElementById('sell-selected-tower').textContent = 'Destruir torre · recuperar 18 oro';
+  } else if (tile === TILE.WALL) {
+    title.textContent = 'Muro';
+    addAction('Quitar muro · recuperar 2 oro', () => {
+      if (map.removeWall(x, y)) { gold += 2; updateGoldHud(); setBuildHint('Muro retirado.'); draw(); closeBuild(); }
+    });
+  } else {
+    title.textContent = 'Casillero no edificable';
+    setBuildHint('No se puede construir en este casillero.');
+  }
+  updateGoldHud();
+  openPanel();
+}
+
+hint.textContent = 'Tocá un camino para colocar un muro o terreno para construir una torre.';
+
 
 btnWall.classList.add('active');
 updateGoldHud();
