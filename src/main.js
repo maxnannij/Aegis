@@ -290,7 +290,8 @@ function draw(now = performance.now()) {
       const px = x * TILE_SIZE;
       const py = y * TILE_SIZE;
 
-      if (t === TILE.PATH || t === TILE.SPAWN || t === TILE.ORB || t === TILE.TRAP) drawPathTile(px, py, x, y);\n      else drawStoneFloor(px, py, x, y);
+      if (t === TILE.PATH || t === TILE.SPAWN || t === TILE.ORB || t === TILE.TRAP) drawPathTile(px, py, x, y);
+      else drawStoneFloor(px, py, x, y);
 
       if (t === TILE.SPAWN) {
         ctx.fillStyle = 'rgba(109, 206, 138, 0.35)';
