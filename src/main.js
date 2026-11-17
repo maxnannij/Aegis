@@ -936,11 +936,20 @@ document.getElementById('sell-selected-tower').addEventListener('click', () => {
     selectedTowerKey = null;
     document.getElementById('selected-tower-actions').hidden = true;
     draw();
+    closeBuild();
   }
 });
 fab.addEventListener('click', () => {
   panel.hidden = !panel.hidden;
   fab.setAttribute('aria-expanded', String(!panel.hidden));
+  if (!panel.hidden) {
+    panel.querySelector('.build-categories').hidden = true;
+    document.getElementById('context-title').hidden = true;
+    options.replaceChildren();
+    document.getElementById('gem-forge').hidden = true;
+    document.getElementById('selected-tower-actions').hidden = true;
+    hint.textContent = 'Tocá un camino para colocar un muro, terreno para construir una torre o una torre para administrar sus gemas.';
+  }
 });
 document.getElementById('build-close').addEventListener('click', closeBuild);
 
