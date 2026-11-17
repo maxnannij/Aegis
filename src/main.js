@@ -656,6 +656,7 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
+canvas.addEventListener('contextmenu', ev => ev.preventDefault());
 canvas.addEventListener('pointerdown', (ev) => {
   ev.preventDefault();
   const rect = canvas.getBoundingClientRect();
@@ -665,22 +666,35 @@ canvas.addEventListener('pointerdown', (ev) => {
   const y = Math.floor(((ev.clientY - rect.top) * scaleY) / TILE_SIZE);
   if (!map.inBounds(x, y)) return;
   const tile = map.get(x, y);
+  const key = x + ',' + y;
 
-  if (!buildSelection) {
-    if (tile === TILE.WALL) map.removeWall(x, y);
+  if (ev.button === 2) {
+    if (tile === TILE.WALL && map.removeWall(x, y)) {
+      gold += 2;
+      updateGoldHud();
+    } else if (tile === TILE.TOWER) sellTowerAt(x, y);
+    draw();
+    return;
+  }
+  if (tile === TILE.TOWER) {
+    selectedTowerKey = key;
+    if (selectedInventoryGem) socketGemOnTower(key);
+    else setBuildHint('Torre seleccionada. Elegí una gema del inventario para engarzarla.');
+    draw();
     return;
   }
   if (buildSelection === 'wall') {
-    if (tile === TILE.PATH) map.placeWall(x, y, 100);
+    if (tile !== TILE.PATH) return;
+    if (gold < WALL_COST) { setBuildHint('Oro insuficiente para construir un muro.'); return; }
+    if (map.placeWall(x, y, 100)) { gold -= WALL_COST; updateGoldHud(); }
   } else if (buildSelection === 'tower') {
-    if (tile === TILE.EMPTY) {
-      map.set(x, y, TILE.TOWER);
-      placedTowers.set(`${x},${y}`, null);
-    }
-  } else if (buildSelection === 'gem') {
-    if (tile === TILE.TOWER) {
-      placedTowers.set(`${x},${y}`, createGem(selectedGemType, selectedGemGrade));
-    }
+    if (tile !== TILE.EMPTY) return;
+    if (gold < TOWER_COST) { setBuildHint('Oro insuficiente para construir una torre.'); return; }
+    map.set(x, y, TILE.TOWER);
+    placedTowers.set(key, null);
+    gold -= TOWER_COST;
+    selectedTowerKey = key;
+    updateGoldHud();
   }
   draw();
 });
@@ -806,7 +820,14 @@ buildRoot.innerHTML = `
       <button type="button" data-category="gem">Gemas</button>
     </div>
     <div id="build-options"></div>
-    <p id="build-hint">Elegí qué construir y tocá un casillero del mapa.</p>
+    <div id="gem-forge" hidden>
+      <div class="forge-title">Forja · 25 de oro</div>
+      <div id="gem-shop" class="gem-choices"></div>
+      <div class="forge-title">Inventario <span id="gem-count">0/24</span></div>
+      <div id="gem-inventory"></div>
+      <button id="gem-fuse" type="button" disabled>Fusionar 2 gemas iguales</button>
+    </div>
+    <p id="build-hint">Elegí Muros, Torres o Gemas para comenzar a construir.</p>
   </section>`;
 document.body.appendChild(buildRoot);
 const fab = document.getElementById('build-fab');
@@ -824,37 +845,39 @@ function setBuildCategory(category) {
   buildSelection = category;
   panel.querySelectorAll('[data-category]').forEach(btn => btn.classList.toggle('selected', btn.dataset.category === category));
   options.replaceChildren();
+  const forge = document.getElementById('gem-forge');
+  forge.hidden = category !== 'gem';
   if (category === 'wall') {
-    options.innerHTML = '<button class="build-option selected" data-build="wall">🧱 Muro</button>';
-    hint.textContent = 'Tocá un casillero del camino para colocar un muro.';
+    options.innerHTML = '<button class="build-option selected" data-cost="4">🧱 Muro · 4 oro</button>';
+    hint.textContent = 'Tocá un casillero del camino para colocar un muro. Clic derecho para venderlo por 2.';
   } else if (category === 'tower') {
-    options.innerHTML = '<button class="build-option selected" data-build="tower">♜ Torre</button>';
-    hint.textContent = 'Tocá un terreno libre para construir una torre.';
+    options.innerHTML = '<button class="build-option selected" data-cost="30">♜ Torre · 30 oro</button>';
+    hint.textContent = 'Tocá un terreno libre para construir una torre. Clic derecho para venderla por 18.';
   } else {
-    const gemButtons = GEM_TYPE_LIST.map(id => {
+    hint.textContent = 'Forjá gemas por 25 de oro, seleccioná una y tocá una torre vacía para engarzarla.';
+    const shop = document.getElementById('gem-shop');
+    shop.replaceChildren();
+    for (const id of GEM_TYPE_LIST) {
       const g = GEM_TYPES[id];
-      return `<button class="gem-choice ${id === selectedGemType ? 'selected' : ''}" data-gem="${id}"><i style="--gem-color:${g.color}"></i><span>${g.nameEs}</span></button>`;
-    }).join('');
-    options.innerHTML = `<div class="gem-choices">${gemButtons}</div>
-      <label class="grade-control">Rango <strong id="grade-value">${selectedGemGrade}</strong>
-        <input id="grade-range" type="range" min="1" max="12" value="${selectedGemGrade}">
-      </label>`;
-    hint.textContent = 'Elegí gema y rango; después tocá una torre vacía para incrustarla.';
-    options.querySelectorAll('[data-gem]').forEach(btn => btn.addEventListener('click', () => {
-      selectedGemType = btn.dataset.gem;
-      options.querySelectorAll('[data-gem]').forEach(b => b.classList.toggle('selected', b === btn));
-    }));
-    const range = document.getElementById('grade-range');
-    range.addEventListener('input', () => {
-      selectedGemGrade = Number(range.value);
-      document.getElementById('grade-value').textContent = selectedGemGrade;
-    });
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'gem-choice';
+      button.dataset.cost = GEM_COST;
+      button.innerHTML = '<i style="--gem-color:' + g.color + '"></i><span>' + g.nameEs + ' · 25 oro</span>';
+      button.addEventListener('click', () => forgeGem(id));
+      shop.appendChild(button);
+    }
+    document.getElementById('gem-fuse').onclick = fuseSelectedGems;
+    renderGemInventory();
   }
+  updateGoldHud();
 }
 panel.querySelectorAll('[data-category]').forEach(btn => btn.addEventListener('click', () => setBuildCategory(btn.dataset.category)));
 hint.textContent = 'Elegí Muros, Torres o Gemas para comenzar a construir.';
 
 btnWall.classList.add('active');
+updateGoldHud();
+renderGemInventory();
 
 canvas.width = map.width * TILE_SIZE;
 canvas.height = map.height * TILE_SIZE;
