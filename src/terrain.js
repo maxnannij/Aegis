@@ -49,7 +49,7 @@ export const DECOR_TYPES = {
   bush: {
     id: 'bush',
     name: 'Arbusto',
-    image: null // Sprite todavía no disponible; se dibuja con Canvas,
+    image: null, // Sprite todavía no disponible; se dibuja con Canvas
     radius: 0,
     minPathClearance: 0,
     drawSize: 1.0,
