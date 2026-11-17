@@ -12,6 +12,20 @@
     <div id="map-container">
       <canvas id="map-canvas" width="480" height="640" aria-label="Mapa de juego"></canvas>
     </div>
+    <section id="start-menu" class="start-menu" aria-labelledby="start-title">
+      <div class="start-card">
+        <p class="start-kicker">UN REINO AL BORDE DEL ABISMO</p>
+        <h1 id="start-title">ABISMO <span>DE</span> CENIZA</h1>
+        <p class="start-copy">Construí tu laberinto. Forjá gemas. Protegé el orbe.</p>
+        <button id="start-game" type="button">Comenzar partida</button>
+        <div class="start-help">Mover mapa: arrastrar · Zoom: rueda o controles + / − · Construir: elegir en el menú</div>
+      </div>
+    </section>
+    <div id="camera-controls" aria-label="Controles de cámara">
+      <button id="zoom-in" type="button" aria-label="Acercar mapa">＋</button>
+      <button id="zoom-out" type="button" aria-label="Alejar mapa">−</button>
+      <button id="zoom-reset" type="button" aria-label="Restablecer vista">⌂</button>
+    </div>
     <div id="game-status"><span id="status" class="status">Path libre</span></div>
     <div class="legacy-controls" aria-hidden="true">
       <button id="btn-toggle-wall" type="button">Modo: Colocar Muro</button>
