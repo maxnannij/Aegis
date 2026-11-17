@@ -86,7 +86,6 @@ let waveResolved = 0;
 const towerCooldowns = new Map();
 const projectiles = [];
 const impactParticles = [];
-let combatClock = 0;
 
 
 // Gnoll sprite (subí el archivo en assets/enemies/Gnoll.png)
@@ -382,7 +381,6 @@ function draw(now = performance.now()) {
 }
 
 function updateCombat(dt) {
-  combatClock += dt;
   // Cada torre engarzada busca al enemigo más adelantado dentro de su alcance.
   for (const [key, gem] of placedTowers) {
     if (!gem) continue;
