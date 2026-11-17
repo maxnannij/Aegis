@@ -195,3 +195,9 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   background:linear-gradient(145deg,#f0d49a,#a77b43);
   box-shadow:0 0 0 2px rgba(201,168,106,.22),0 4px 14px rgba(0,0,0,.4);
 }
+
+
+/* Acciones contextuales según el tipo de casillero tocado. */
+.context-title { margin: 2px 1px 9px; color: #e2c58e; font-size: 13px; font-weight: 700; }
+.context-title[hidden] { display: none; }
+.build-option:disabled { opacity: .42; cursor: not-allowed; }
