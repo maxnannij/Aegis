@@ -3,9 +3,10 @@
  *
  * Behaviour:
  * 1. Tries to follow a path from its current position toward the Orb.
- * 2. If the map becomes fully blocked → switches to ATTACK mode.
- * 3. In ATTACK mode it moves toward the nearest attackable wall and damages it.
- * 4. When a wall is destroyed, pathfinding is re-enabled automatically.
+ * 2. If a wall is placed on the remaining path → recalculates immediately.
+ * 3. If the map becomes fully blocked → switches to ATTACK mode.
+ * 4. In ATTACK mode it moves toward the nearest attackable wall and damages it.
+ * 5. When a wall is destroyed, pathfinding is re-enabled automatically.
  */
 
 export const ENEMY_STATE = {
@@ -74,16 +75,31 @@ export class Enemy {
 
   // ── Walking logic ──────────────────────────────
   _updateWalking(dt) {
-    // Need a path?
+    // 1. Validate that the remaining path is still walkable.
+    //    If a wall was placed on any upcoming tile → force recalculation.
+    if (this.path.length > 0 && this.pathIndex < this.path.length) {
+      if (!this._isRemainingPathValid()) {
+        this._recalculatePath();
+      }
+    }
+
+    // 2. Need a (new) path?
     if (this.path.length === 0 || this.pathIndex >= this.path.length) {
       this._recalculatePath();
       if (this.path.length === 0) {
-        // Still no path (shouldn't happen if not fully blocked, but safety)
+        // No path available (shouldn't happen if not fully blocked)
         return;
       }
     }
 
     const target = this.path[this.pathIndex];
+
+    // Extra safety: if the immediate target tile is no longer walkable, repath
+    if (!this.map.isWalkable(target.x, target.y)) {
+      this._recalculatePath();
+      return;
+    }
+
     const dx = target.x - this.x;
     const dy = target.y - this.y;
     const dist = Math.hypot(dx, dy);
@@ -112,14 +128,35 @@ export class Enemy {
     }
   }
 
+  /**
+   * Returns true only if every remaining tile in the current path is still walkable.
+   */
+  _isRemainingPathValid() {
+    for (let i = this.pathIndex; i < this.path.length; i++) {
+      const p = this.path[i];
+      if (!this.map.isWalkable(p.x, p.y)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   _recalculatePath() {
     const start = { x: this.tileX, y: this.tileY };
-    // Prefer current tile if walkable, otherwise nearest spawn-like
+
+    // If we are currently standing on a non-walkable tile (rare), try to snap to nearest walkable
+    if (!this.map.isWalkable(start.x, start.y)) {
+      // simple fallback: stay and wait (or could search neighbors)
+      this.path = [];
+      this.pathIndex = 0;
+      return;
+    }
+
     const path = this.map.findPath(start, this.map.orb);
     if (path && path.length > 0) {
-      // If we are already on the first point, skip it
       this.path = path;
       this.pathIndex = 0;
+      // Skip the starting node if we are already on it
       if (path[0].x === this.tileX && path[0].y === this.tileY) {
         this.pathIndex = 1;
       }
