@@ -51,9 +51,13 @@ const canvas = document.getElementById('map-canvas');
 const ctx = canvas.getContext('2d');
 const statusEl = document.getElementById('status');
 const placedTowers = new Map();
+const towerCooldowns = new Map();
+const playerGems = [];
+const GEM_COST = 25, WALL_COST = 4, TOWER_COST = 30, INVENTORY_LIMIT = 24;
+let gold = 120, nextGemId = 1, selectedInventoryGem = null, selectedInventoryGem2 = null;
+let selectedTowerKey = null;
 let buildSelection = null;
 let selectedGemType = 'yellow';
-let selectedGemGrade = 1;
 const btnWall = document.getElementById('btn-toggle-wall');
 const btnSpawn = document.getElementById('btn-spawn');
 const btnClear = document.getElementById('btn-clear-walls');
@@ -83,7 +87,6 @@ let spawnTimer = 0;
 let waveResolved = 0;
 
 // Combate visual de torres: proyectiles, estelas e impactos.
-const towerCooldowns = new Map();
 const projectiles = [];
 const impactParticles = [];
 
@@ -412,6 +415,119 @@ function draw(now = performance.now()) {
   ctx.globalAlpha = 1;
 }
 
+
+function setBuildHint(message) {
+  const el = document.getElementById('build-hint');
+  if (el) el.textContent = message;
+}
+function updateGoldHud() {
+  const el = document.getElementById('gold-value');
+  if (el) el.textContent = String(Math.floor(gold));
+  document.querySelectorAll('[data-cost]').forEach(b => b.classList.toggle('unaffordable', gold < Number(b.dataset.cost)));
+}
+function canFuseSelectedGems() {
+  const a = playerGems.find(g => g.id === selectedInventoryGem);
+  const b = playerGems.find(g => g.id === selectedInventoryGem2);
+  return !!(a && b && a.id !== b.id && a.typeId === b.typeId && a.grade === b.grade && a.grade < 12);
+}
+function renderGemInventory() {
+  const inventory = document.getElementById('gem-inventory');
+  const count = document.getElementById('gem-count');
+  const fuseButton = document.getElementById('gem-fuse');
+  if (!inventory) return;
+  inventory.replaceChildren();
+  if (count) count.textContent = playerGems.length + '/' + INVENTORY_LIMIT;
+  for (const gem of playerGems) {
+    const type = GEM_TYPES[gem.typeId] || GEM_TYPES[(gem.types || [])[0]];
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'inventory-gem' + ((selectedInventoryGem === gem.id || selectedInventoryGem2 === gem.id) ? ' selected' : '');
+    button.title = (type ? type.nameEs : 'Gema') + ' · nivel ' + gem.grade;
+    button.style.setProperty('--gem-color', type ? type.color : '#fff');
+    button.innerHTML = '<i></i><span>' + gem.grade + '</span>';
+    button.addEventListener('click', ev => {
+      if (ev.shiftKey) selectedInventoryGem2 = selectedInventoryGem2 === gem.id ? null : gem.id;
+      else {
+        selectedInventoryGem = selectedInventoryGem === gem.id ? null : gem.id;
+        if (!selectedInventoryGem) selectedInventoryGem2 = null;
+      }
+      renderGemInventory();
+      setBuildHint(selectedInventoryGem2 ? 'Segunda gema seleccionada. Fusioná si ambas son del mismo tipo y nivel.' :
+        selectedInventoryGem ? 'Gema seleccionada: tocá una torre vacía para engarzarla. Mayús + toque selecciona otra para fusionar.' :
+        'Seleccioná una gema del inventario.');
+    });
+    inventory.appendChild(button);
+  }
+  if (!playerGems.length) {
+    const empty = document.createElement('small');
+    empty.className = 'inventory-empty';
+    empty.textContent = 'Todavía no tenés gemas.';
+    inventory.appendChild(empty);
+  }
+  if (fuseButton) fuseButton.disabled = !canFuseSelectedGems();
+}
+function forgeGem(typeId) {
+  if (playerGems.length >= INVENTORY_LIMIT) { setBuildHint('Inventario lleno (máximo 24 gemas).'); return; }
+  if (gold < GEM_COST) { setBuildHint('Oro insuficiente para forjar una gema.'); return; }
+  gold -= GEM_COST;
+  const gem = createGem(typeId, 1);
+  gem.id = 'aegis-gem-' + nextGemId++;
+  playerGems.push(gem);
+  selectedInventoryGem = gem.id;
+  selectedInventoryGem2 = null;
+  renderGemInventory();
+  updateGoldHud();
+}
+function fuseSelectedGems() {
+  if (!canFuseSelectedGems()) { setBuildHint('Seleccioná dos gemas del mismo tipo y nivel (Mayús + toque en la segunda).'); return; }
+  const a = playerGems.find(g => g.id === selectedInventoryGem);
+  const b = playerGems.find(g => g.id === selectedInventoryGem2);
+  const high = createGem(a.typeId, a.grade + 1);
+  high.id = 'aegis-gem-' + nextGemId++;
+  const ai = playerGems.indexOf(a), bi = playerGems.indexOf(b);
+  playerGems.splice(Math.max(ai, bi), 1);
+  playerGems.splice(Math.min(ai, bi), 1);
+  playerGems.push(high);
+  selectedInventoryGem = high.id;
+  selectedInventoryGem2 = null;
+  renderGemInventory();
+  setBuildHint('¡Gema de nivel ' + high.grade + ' creada!');
+}
+function socketGemOnTower(key) {
+  if (!selectedInventoryGem) return false;
+  const gem = playerGems.find(g => g.id === selectedInventoryGem);
+  if (!gem) return false;
+  if (placedTowers.get(key)) { setBuildHint('Esta torre ya tiene una gema.'); return true; }
+  placedTowers.set(key, gem);
+  playerGems.splice(playerGems.indexOf(gem), 1);
+  selectedInventoryGem = null;
+  selectedInventoryGem2 = null;
+  renderGemInventory();
+  setBuildHint('Gema engarzada. La torre ya puede atacar.');
+  return true;
+}
+function sellTowerAt(x, y) {
+  const key = x + ',' + y;
+  if (map.get(x, y) !== TILE.TOWER) return false;
+  const gem = placedTowers.get(key);
+  if (gem && playerGems.length >= INVENTORY_LIMIT) { setBuildHint('Inventario lleno: no se puede recuperar la gema.'); return true; }
+  if (gem) playerGems.push(gem);
+  placedTowers.delete(key);
+  towerCooldowns.delete(key);
+  map.set(x, y, TILE.EMPTY);
+  gold += Math.floor(TOWER_COST * 0.6);
+  if (selectedTowerKey === key) selectedTowerKey = null;
+  renderGemInventory();
+  updateGoldHud();
+  return true;
+}
+function rewardEnemy(enemy) {
+  if (enemy._goldRewarded) return;
+  enemy._goldRewarded = true;
+  gold += Math.round(4 + currentWave * 0.8);
+  updateGoldHud();
+}
+
 function updateCombat(dt) {
   // Cada torre engarzada busca al enemigo más adelantado dentro de su alcance.
   for (const [key, gem] of placedTowers) {
@@ -512,6 +628,7 @@ function update(dt) {
   updateCombat(dt);
 
   for (let i = enemies.length - 1; i >= 0; i--) {
+    if (enemies[i].state === ENEMY_STATE.DEAD) rewardEnemy(enemies[i]);
     if (enemies[i].state === ENEMY_STATE.DEAD || enemies[i].state === ENEMY_STATE.REACHING_ORB) {
       enemies.splice(i, 1);
       if (waveState === 'running') waveResolved++;
@@ -520,6 +637,8 @@ function update(dt) {
 
   if (waveState === 'running' && spawnRemaining === 0 && enemies.length === 0) {
     waveState = 'complete';
+    gold += 10 + currentWave * 2;
+    updateGoldHud();
     renderWavePanel();
   }
   renderWaveProgress();
@@ -581,6 +700,10 @@ waveRoot.innerHTML = `
   <div class="wave-list" id="wave-list" aria-label="Lista de oleadas"></div>
 `;
 document.getElementById('app').appendChild(waveRoot);
+const goldHud = document.createElement('div');
+goldHud.id = 'gold-hud';
+goldHud.innerHTML = '<span class="gold-icon">◆</span><span>ORO</span><strong id="gold-value">120</strong>';
+document.getElementById('app').appendChild(goldHud);
 const waveStartButton = document.getElementById('wave-start');
 
 function startWave() {
