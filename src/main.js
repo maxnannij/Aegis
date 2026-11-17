@@ -1,8 +1,7 @@
 import { GEM_TYPES, createGem, getGemStats, GEM_TYPE_LIST } from './gems.js';
 import { GameMap, TILE, createTestMap } from './map.js';
 import { Enemy, ENEMY_STATE } from './enemy.js';
-import { TerrainLayer, DECOR_TYPES, GROUND } from './terrain.js';
-import { PATH_TEXTURE_DATA_URL } from './path_texture.js';
+import { TerrainLayer, DECOR_TYPES } from './terrain.js';
 
 // ─────────────────────────────────────────────
 // Gem design cards
@@ -97,41 +96,6 @@ gnollImage.onload = () => { gnollImageReady = true; };
 gnollImage.src = 'assets/enemies/Gnoll.png';
 
 const TILE_SIZE = 32;
-
-// Path texture: prefer real file in assets/, fallback to embedded data URL
-let pathImg = null;
-let pathImgReady = false;
-
-function loadPathTexture() {
-  const img = new Image();
-  img.onload = () => {
-    pathImg = img;
-    pathImgReady = true;
-  };
-  img.onerror = () => {
-    // Fallback while the JPG is not yet in the repo
-    const fb = new Image();
-    fb.onload = () => {
-      pathImg = fb;
-      pathImgReady = true;
-    };
-    fb.src = PATH_TEXTURE_DATA_URL;
-  };
-  // Primary: the file you place in the repo
-  img.src = 'assets/tiles/path_cobblestone.jpg';
-}
-loadPathTexture();
-
-const GROUND_COLORS = {
-  [GROUND.GRASS]: '#1e2a1a',
-  [GROUND.DIRT]: '#2a241c',
-  [GROUND.PATH]: '#3d362c',
-  [GROUND.STONE]: '#2c2c2c',
-};
-
-function isPathLike(t) {
-  return t === TILE.PATH || t === TILE.SPAWN || t === TILE.ORB || t === TILE.TRAP || t === TILE.WALL;
-}
 
 function tileHash(x, y) {
   let h = (x * 374761393 + y * 668265263) ^ 0x5bd1e995;
