@@ -32,7 +32,7 @@ export const DECOR_TYPES = {
   tree_small: {
     id: 'tree_small',
     name: 'Árbol chico',
-    image: 'assets/decor/tree_small.png',
+    image: 'assets/tiles/tree_small.png',
     radius: 1,
     minPathClearance: 1,
     // size in tiles for drawing (width/height of sprite in tile units)
@@ -41,7 +41,7 @@ export const DECOR_TYPES = {
   tree_large: {
     id: 'tree_large',
     name: 'Árbol grande',
-    image: 'assets/decor/tree_large.png',
+    image: 'assets/tiles/tree_large.png',
     radius: 2,
     minPathClearance: 2, // branches cover up to 2 cells → keep 2 away from path
     drawSize: 3.2,
@@ -49,7 +49,7 @@ export const DECOR_TYPES = {
   bush: {
     id: 'bush',
     name: 'Arbusto',
-    image: 'assets/decor/bush.png',
+    image: null // Sprite todavía no disponible; se dibuja con Canvas,
     radius: 0,
     minPathClearance: 0,
     drawSize: 1.0,
@@ -57,7 +57,7 @@ export const DECOR_TYPES = {
   rock: {
     id: 'rock',
     name: 'Roca',
-    image: 'assets/decor/rock.png',
+    image: null // Sprite todavía no disponible; se dibuja con Canvas,
     radius: 0,
     minPathClearance: 0,
     drawSize: 1.0,
