@@ -1,196 +1,51 @@
 :root {
-  --bg: #0f0e0c;
-  --surface: #1a1814;
-  --text: #e8e0d0;
-  --muted: #9a9080;
-  --accent: #1F8A68;
-  --ember: #E08A45;
+  color-scheme: dark;
+  --bg: #10130f;
+  --panel: rgba(25, 29, 23, .96);
+  --panel-border: rgba(222, 205, 166, .2);
+  --text: #f1eadb;
+  --muted: #b5ad9c;
+  --accent: #c49a54;
+  --green: #4c9873;
 }
+* { box-sizing: border-box; }
+html, body, #app { width: 100%; height: 100%; min-height: 100%; margin: 0; overflow: hidden; }
+body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; overscroll-behavior: none; touch-action: manipulation; }
+#app { position: relative; }
+#map-container { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; background: #141710; }
+#map-canvas { display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
+#game-status { position: absolute; top: max(10px, env(safe-area-inset-top)); right: 10px; pointer-events: none; }
+.status { display: inline-block; padding: 6px 10px; border: 1px solid rgba(109,206,138,.25); border-radius: 999px; background: rgba(18,35,24,.86); color: #8de0a4; font-size: 12px; font-weight: 700; backdrop-filter: blur(8px); }
+.status.blocked { background: rgba(54,23,20,.9); color: #ff9c8d; border-color: rgba(232,122,106,.4); }
+.legacy-controls { display: none; }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/* Floating build button and compact palette */
+#build-ui { position: fixed; z-index: 20; left: max(16px, env(safe-area-inset-left)); bottom: max(18px, env(safe-area-inset-bottom)); }
+#build-fab { width: 66px; height: 66px; border: 2px solid #e2c48c; border-radius: 50%; color: #17140e; background: linear-gradient(145deg, #f0d49a, #b9853e); box-shadow: 0 5px 22px rgba(0,0,0,.55), inset 0 1px 2px rgba(255,255,255,.55); font-size: 38px; line-height: 1; font-weight: 300; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+#build-fab[aria-expanded="true"] { transform: rotate(45deg); }
+#build-panel { position: absolute; left: 0; bottom: 78px; width: min(320px, calc(100vw - 28px)); max-height: min(68dvh, 540px); overflow-y: auto; padding: 13px; border: 1px solid var(--panel-border); border-radius: 16px; background: var(--panel); box-shadow: 0 12px 38px rgba(0,0,0,.62); backdrop-filter: blur(14px); }
+#build-panel[hidden] { display: none; }
+.build-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; font-size: 16px; }
+#build-close { width: 32px; height: 32px; border: 0; border-radius: 9px; color: var(--text); background: rgba(255,255,255,.09); font-size: 23px; cursor: pointer; }
+.build-categories { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
+.build-categories button, .build-option { min-height: 42px; border: 1px solid #514735; border-radius: 10px; color: var(--text); background: #29271f; font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
+.build-categories button.selected, .build-option.selected { border-color: var(--accent); background: #54432a; color: #ffe1a8; }
+#build-options { display: flex; flex-direction: column; gap: 9px; }
+.build-option { padding: 9px 12px; text-align: left; }
+.gem-choices { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; }
+.gem-choice { display: flex; align-items: center; gap: 8px; min-height: 39px; padding: 6px 8px; border: 1px solid #454238; border-radius: 9px; color: var(--text); background: #22231e; text-align: left; font: inherit; font-size: 11px; cursor: pointer; }
+.gem-choice.selected { border-color: var(--accent); background: #463a27; }
+.gem-choice i { flex: 0 0 16px; width: 16px; height: 16px; border: 1px solid rgba(255,255,255,.6); background: var(--gem-color); transform: rotate(45deg); border-radius: 3px; box-shadow: 0 0 8px color-mix(in srgb, var(--gem-color), transparent 45%); }
+.grade-control { display: grid; grid-template-columns: auto 28px; gap: 4px 10px; align-items: center; padding: 9px 10px; border-radius: 9px; background: #20221d; color: var(--muted); font-size: 13px; }
+.grade-control strong { color: #ffe1a8; text-align: right; }
+.grade-control input { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); }
+#build-hint { margin: 10px 2px 0; color: var(--muted); font-size: 11px; line-height: 1.4; }
+button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+@media (max-width: 420px) {
+  #build-fab { width: 60px; height: 60px; font-size: 34px; }
+  #build-panel { bottom: 70px; width: min(300px, calc(100vw - 26px)); }
 }
-
-body {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  line-height: 1.5;
-}
-
-#app {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 1.5rem;
-}
-
-header {
-  text-align: center;
-  margin-bottom: 2rem;
-  border-bottom: 1px solid #333;
-  padding-bottom: 1rem;
-}
-
-h1 {
-  font-size: 2.4rem;
-  letter-spacing: 0.05em;
-  color: var(--ember);
-}
-
-.subtitle {
-  color: var(--muted);
-  font-size: 0.95rem;
-}
-
-h2 {
-  font-size: 1.3rem;
-  margin: 1.5rem 0 0.75rem;
-  color: var(--accent);
-}
-
-/* ── Map demo ── */
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  align-items: center;
-  margin-bottom: 0.8rem;
-}
-
-.controls button {
-  background: var(--surface);
-  border: 1px solid #3a3630;
-  color: var(--text);
-  padding: 0.45rem 0.9rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.controls button:hover {
-  background: #25221c;
-  border-color: var(--accent);
-}
-
-.controls button.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-
-.status {
-  margin-left: auto;
-  font-size: 0.9rem;
-  padding: 0.3rem 0.7rem;
-  border-radius: 4px;
-  background: #1a2a1a;
-  color: #6dce8a;
-}
-
-.status.blocked {
-  background: #2a1a1a;
-  color: #e87a6a;
-}
-
-#map-container {
-  background: #141210;
-  border: 1px solid #2a2824;
-  border-radius: 8px;
-  overflow: hidden;
-  display: inline-block;
-}
-
-#map-canvas {
-  display: block;
-  cursor: crosshair;
-  max-width: 100%;
-  height: auto;
-}
-
-.hint {
-  font-size: 0.8rem;
-  color: var(--muted);
-  margin-top: 0.5rem;
-}
-
-/* ── Gems ── */
-.gem-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1rem;
-}
-
-.gem-card {
-  background: var(--surface);
-  border: 1px solid #2a2824;
-  border-radius: 10px;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.6rem;
-  transition: border-color 0.15s;
-}
-
-.gem-card:hover {
-  border-color: var(--accent);
-}
-
-.gem-visual {
-  width: 64px;
-  height: 64px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: #111;
-  box-shadow: 0 0 12px rgba(0,0,0,0.4);
-  position: relative;
-}
-
-.gem-visual.grade-1 { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
-.gem-visual.grade-3 { border-radius: 4px; }
-.gem-visual.grade-6 { transform: rotate(45deg); border-radius: 4px; }
-.gem-visual.grade-12 { border-radius: 50%; }
-
-.gem-name {
-  font-weight: 600;
-  font-size: 0.95rem;
-  text-align: center;
-}
-
-.gem-color-name {
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-
-.gem-desc {
-  font-size: 0.78rem;
-  color: #b0a890;
-  text-align: center;
-}
-
-.gem-stats {
-  font-size: 0.75rem;
-  color: #888;
-  text-align: center;
-}
-
-footer {
-  margin-top: 3rem;
-  padding-top: 1rem;
-  border-top: 1px solid #333;
-  text-align: center;
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-
-footer a {
-  color: var(--accent);
+@media (orientation: landscape) and (max-height: 500px) {
+  #build-panel { max-height: 76dvh; width: min(340px, 48vw); }
+  #build-fab { width: 56px; height: 56px; }
 }
