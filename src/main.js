@@ -691,6 +691,8 @@ canvas.addEventListener('pointerdown', (ev) => {
   }
   if (tile === TILE.TOWER) {
     selectedTowerKey = key;
+    panel.hidden = false;
+    fab.setAttribute('aria-expanded', 'true');
     document.getElementById('selected-tower-actions').hidden = false;
     if (selectedInventoryGem) socketGemOnTower(key);
     else setBuildHint('Torre seleccionada. Elegí una gema del inventario para engarzarla.');
