@@ -32,27 +32,20 @@ export const TILE_NAMES = {
   [TILE.TRAP]: 'trap',
 };
 
-/** Simple 4-directional neighbors */
 const DIRS = [
-  { dx: 0, dy: -1 }, // N
-  { dx: 1, dy: 0 },  // E
-  { dx: 0, dy: 1 },  // S
-  { dx: -1, dy: 0 }, // W
+  { dx: 0, dy: -1 },
+  { dx: 1, dy: 0 },
+  { dx: 0, dy: 1 },
+  { dx: -1, dy: 0 },
 ];
 
 export class GameMap {
-  /**
-   * @param {number} width
-   * @param {number} height
-   * @param {number[][]} [layout] optional initial layout (row-major)
-   */
   constructor(width, height, layout = null) {
     this.width = width;
     this.height = height;
     this.tiles = [];
-    this.wallHp = new Map(); // key "x,y" → current HP
+    this.wallHp = new Map();
 
-    // Default empty map
     for (let y = 0; y < height; y++) {
       this.tiles[y] = [];
       for (let x = 0; x < width; x++) {
@@ -60,9 +53,7 @@ export class GameMap {
       }
     }
 
-    if (layout) {
-      this.loadLayout(layout);
-    }
+    if (layout) this.loadLayout(layout);
 
     this.spawns = [];
     this.orb = null;
@@ -74,9 +65,7 @@ export class GameMap {
       for (let x = 0; x < this.width; x++) {
         const v = layout[y]?.[x] ?? TILE.EMPTY;
         this.tiles[y][x] = v;
-        if (v === TILE.WALL) {
-          this.wallHp.set(`${x},${y}`, 100); // default wall HP
-        }
+        if (v === TILE.WALL) this.wallHp.set(`${x},${y}`, 100);
       }
     }
     this._findSpecialTiles();
@@ -107,23 +96,18 @@ export class GameMap {
     if (!this.inBounds(x, y)) return false;
     this.tiles[y][x] = type;
     const key = `${x},${y}`;
-    if (type === TILE.WALL) {
-      this.wallHp.set(key, wallHp);
-    } else {
-      this.wallHp.delete(key);
-    }
+    if (type === TILE.WALL) this.wallHp.set(key, wallHp);
+    else this.wallHp.delete(key);
     if (type === TILE.SPAWN || type === TILE.ORB) this._findSpecialTiles();
     return true;
   }
 
-  /** Is this tile currently walkable by enemies? */
   isWalkable(x, y) {
     const t = this.get(x, y);
     if (t === null) return false;
     return t === TILE.PATH || t === TILE.SPAWN || t === TILE.ORB || t === TILE.TRAP;
   }
 
-  /** Can the player place a wall here? Only on PATH tiles. */
   canPlaceWall(x, y) {
     return this.get(x, y) === TILE.PATH;
   }
@@ -156,15 +140,9 @@ export class GameMap {
     return this.wallHp.get(`${x},${y}`) ?? 0;
   }
 
-  // ─────────────────────────────────────────────
-  // Pathfinding (A*)
-  // ─────────────────────────────────────────────
-
   findPath(start, goal) {
     if (!start || !goal) return null;
-    if (!this.isWalkable(start.x, start.y) || !this.isWalkable(goal.x, goal.y)) {
-      return null;
-    }
+    if (!this.isWalkable(start.x, start.y) || !this.isWalkable(goal.x, goal.y)) return null;
 
     const key = (p) => `${p.x},${p.y}`;
     const open = new Map();
@@ -227,20 +205,8 @@ export class GameMap {
     return this.findAnyPathToOrb() === null;
   }
 
-  // ─────────────────────────────────────────────
-  // Critical walls (per-enemy and global)
-  // ─────────────────────────────────────────────
-
-  /**
-   * Walls that are critical blockers FROM A SPECIFIC POSITION.
-   * Used by an individual enemy that is trapped.
-   *
-   * A wall is critical for (fromX, fromY) if removing it opens a path
-   * from that position to the orb.
-   */
   getCriticalWallsFrom(fromX, fromY) {
     if (!this.orb) return [];
-
     const reachable = this._floodReachableFrom({ x: fromX, y: fromY });
     const candidates = [];
 
@@ -265,9 +231,6 @@ export class GameMap {
     return critical;
   }
 
-  /**
-   * Global critical walls (from spawns). Kept for compatibility / status display.
-   */
   getAttackableWalls() {
     const reachable = this._floodReachableFromSpawns();
     const candidates = [];
@@ -286,9 +249,7 @@ export class GameMap {
 
     const critical = [];
     for (const wall of candidates) {
-      if (this._wouldOpenPathIfRemoved(wall.x, wall.y)) {
-        critical.push(wall);
-      }
+      if (this._wouldOpenPathIfRemoved(wall.x, wall.y)) critical.push(wall);
     }
     return critical;
   }
@@ -312,7 +273,6 @@ export class GameMap {
   getNearestAttackableWall(fromX, fromY) {
     const walls = this.getAttackableWalls();
     if (walls.length === 0) return null;
-
     let best = null;
     let bestDist = Infinity;
     for (const w of walls) {
@@ -336,7 +296,6 @@ export class GameMap {
   _floodReachableFromMultiple(starts) {
     const visited = new Set();
     const queue = [];
-
     for (const s of starts) {
       if (this.isWalkable(s.x, s.y)) {
         const k = `${s.x},${s.y}`;
@@ -344,7 +303,6 @@ export class GameMap {
         queue.push(s);
       }
     }
-
     while (queue.length > 0) {
       const cur = queue.shift();
       for (const dir of DIRS) {
@@ -360,10 +318,6 @@ export class GameMap {
     return visited;
   }
 
-  // ─────────────────────────────────────────────
-  // Debug / utility
-  // ─────────────────────────────────────────────
-
   toString() {
     const symbols = {
       [TILE.EMPTY]: '.',
@@ -377,9 +331,7 @@ export class GameMap {
     };
     let out = '';
     for (let y = 0; y < this.height; y++) {
-      for (let x = 0; x < this.width; x++) {
-        out += symbols[this.tiles[y][x]] ?? '?';
-      }
+      for (let x = 0; x < this.width; x++) out += symbols[this.tiles[y][x]] ?? '?';
       out += '\n';
     }
     return out;
@@ -401,38 +353,65 @@ function reconstructPath(cameFrom, current) {
   return path;
 }
 
-// ─────────────────────────────────────────────
-// Example starter map (for testing)
-// ─────────────────────────────────────────────
-
+/**
+ * Portrait test map for mobile: 15 wide × 20 tall
+ * Path snakes from top (spawn) to bottom (orb).
+ */
 export function createTestMap() {
-  const W = 14;
-  const H = 10;
+  const W = 15;
+  const H = 20;
   const layout = Array.from({ length: H }, () => Array(W).fill(TILE.EMPTY));
 
-  // Horizontal main path
-  for (let x = 1; x <= 12; x++) {
-    layout[4][x] = TILE.PATH;
-    layout[5][x] = TILE.PATH;
-  }
+  // Helper: fill a horizontal segment
+  const hPath = (y, x0, x1) => {
+    for (let x = x0; x <= x1; x++) layout[y][x] = TILE.PATH;
+  };
+  // Helper: fill a vertical segment
+  const vPath = (x, y0, y1) => {
+    for (let y = y0; y <= y1; y++) layout[y][x] = TILE.PATH;
+  };
 
-  // Vertical branch
-  for (let y = 2; y <= 7; y++) {
-    layout[y][6] = TILE.PATH;
-    layout[y][7] = TILE.PATH;
-  }
+  // Snake path top → bottom (good for portrait)
+  // Start top-center
+  hPath(1, 5, 9);
+  vPath(5, 1, 4);
+  hPath(4, 5, 11);
+  vPath(11, 4, 8);
+  hPath(8, 3, 11);
+  vPath(3, 8, 12);
+  hPath(12, 3, 10);
+  vPath(10, 12, 16);
+  hPath(16, 4, 10);
+  vPath(4, 16, 18);
+  hPath(18, 4, 10);
 
-  // Spawn left
-  layout[4][0] = TILE.SPAWN;
-  layout[5][0] = TILE.SPAWN;
-  layout[4][1] = TILE.PATH;
-  layout[5][1] = TILE.PATH;
+  // Make path 2 tiles wide in places for nicer look
+  hPath(2, 5, 9);
+  vPath(6, 1, 4);
+  hPath(5, 5, 11);
+  vPath(10, 4, 8);
+  hPath(9, 3, 11);
+  vPath(4, 8, 12);
+  hPath(13, 3, 10);
+  vPath(9, 12, 16);
+  hPath(17, 4, 10);
+  vPath(5, 16, 18);
 
-  // Orb right
-  layout[4][13] = TILE.ORB;
-  layout[5][13] = TILE.ORB;
-  layout[4][12] = TILE.PATH;
-  layout[5][12] = TILE.PATH;
+  // Spawn at top
+  layout[0][6] = TILE.SPAWN;
+  layout[0][7] = TILE.SPAWN;
+  layout[0][8] = TILE.SPAWN;
+  layout[1][6] = TILE.PATH;
+  layout[1][7] = TILE.PATH;
+  layout[1][8] = TILE.PATH;
+
+  // Orb at bottom
+  layout[19][6] = TILE.ORB;
+  layout[19][7] = TILE.ORB;
+  layout[19][8] = TILE.ORB;
+  layout[18][6] = TILE.PATH;
+  layout[18][7] = TILE.PATH;
+  layout[18][8] = TILE.PATH;
 
   return new GameMap(W, H, layout);
 }
