@@ -423,7 +423,7 @@ function setBuildCategory(category) {
   }
 }
 panel.querySelectorAll('[data-category]').forEach(btn => btn.addEventListener('click', () => setBuildCategory(btn.dataset.category)));
-setBuildCategory('wall');
+hint.textContent = 'Elegí Muros, Torres o Gemas para comenzar a construir.';
 
 btnWall.classList.add('active');
 
