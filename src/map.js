@@ -4,13 +4,10 @@
  * Rules (GemCraft Labyrinth style):
  * - Enemies only walk on PATH tiles.
  * - Player can place WALL on PATH tiles to force longer routes / redirect.
- * - If every possible route is blocked → no path exists → enemies switch to
- *   ATTACK mode and start damaging the walls that are sealing the path.
- * - Once a wall is destroyed, path is recalculated and they resume walking.
- *
- * Important: enemies only attack walls that are *critical blockers*
- * (walls that, if destroyed, would reopen a path to the orb).
- * They do NOT attack random nearby walls.
+ * - Each enemy decides independently:
+ *     → If it can still reach the Orb from its current position → keep advancing.
+ *     → Only if it is trapped → attack walls that block ITS path.
+ * - Walls attacked are only *critical blockers* (removing them reopens a path).
  */
 
 export const TILE = {
@@ -123,8 +120,6 @@ export class GameMap {
   isWalkable(x, y) {
     const t = this.get(x, y);
     if (t === null) return false;
-    // PATH, SPAWN, ORB and TRAP are walkable
-    // WALL blocks
     return t === TILE.PATH || t === TILE.SPAWN || t === TILE.ORB || t === TILE.TRAP;
   }
 
@@ -141,7 +136,7 @@ export class GameMap {
 
   removeWall(x, y) {
     if (this.get(x, y) !== TILE.WALL) return false;
-    this.set(x, y, TILE.PATH); // restore path
+    this.set(x, y, TILE.PATH);
     return true;
   }
 
@@ -151,7 +146,7 @@ export class GameMap {
     let hp = this.wallHp.get(key) - amount;
     if (hp <= 0) {
       this.removeWall(x, y);
-      return true; // destroyed
+      return true;
     }
     this.wallHp.set(key, hp);
     return false;
@@ -165,10 +160,6 @@ export class GameMap {
   // Pathfinding (A*)
   // ─────────────────────────────────────────────
 
-  /**
-   * Find shortest path from start → goal using only walkable tiles.
-   * Returns array of {x,y} or null if no path.
-   */
   findPath(start, goal) {
     if (!start || !goal) return null;
     if (!this.isWalkable(start.x, start.y) || !this.isWalkable(goal.x, goal.y)) {
@@ -187,10 +178,9 @@ export class GameMap {
     fScore.set(startKey, heuristic(start, goal));
 
     while (open.size > 0) {
-      // node with lowest fScore
       let currentKey = null;
       let lowestF = Infinity;
-      for (const [k, node] of open) {
+      for (const [k] of open) {
         const f = fScore.get(k) ?? Infinity;
         if (f < lowestF) {
           lowestF = f;
@@ -221,13 +211,9 @@ export class GameMap {
         }
       }
     }
-    return null; // blocked
+    return null;
   }
 
-  /**
-   * Check if there is ANY path from any spawn to the orb.
-   * Returns the first found path or null.
-   */
   findAnyPathToOrb() {
     if (!this.orb || this.spawns.length === 0) return null;
     for (const spawn of this.spawns) {
@@ -237,29 +223,27 @@ export class GameMap {
     return null;
   }
 
-  /** True when the map is completely sealed (no route left). */
   isFullyBlocked() {
     return this.findAnyPathToOrb() === null;
   }
 
   // ─────────────────────────────────────────────
-  // Attack mode helpers (when fully blocked)
+  // Critical walls (per-enemy and global)
   // ─────────────────────────────────────────────
 
   /**
-   * Returns only the walls that are *critical blockers*.
+   * Walls that are critical blockers FROM A SPECIFIC POSITION.
+   * Used by an individual enemy that is trapped.
    *
-   * A wall is critical if:
-   * 1. It is adjacent to the area currently reachable from the spawns, AND
-   * 2. Temporarily removing it would open a path from a spawn to the orb.
-   *
-   * This prevents enemies from attacking irrelevant nearby walls.
+   * A wall is critical for (fromX, fromY) if removing it opens a path
+   * from that position to the orb.
    */
-  getAttackableWalls() {
-    const reachable = this._floodReachableFromSpawns();
+  getCriticalWallsFrom(fromX, fromY) {
+    if (!this.orb) return [];
+
+    const reachable = this._floodReachableFrom({ x: fromX, y: fromY });
     const candidates = [];
 
-    // 1. Collect walls that touch the reachable area
     for (const key of this.wallHp.keys()) {
       const [x, y] = key.split(',').map(Number);
       for (const dir of DIRS) {
@@ -272,38 +256,59 @@ export class GameMap {
       }
     }
 
-    if (candidates.length === 0) return [];
-
-    // 2. Keep only walls that, if removed, reopen a path to the orb
     const critical = [];
+    for (const wall of candidates) {
+      if (this._wouldOpenPathFromIfRemoved(fromX, fromY, wall.x, wall.y)) {
+        critical.push(wall);
+      }
+    }
+    return critical;
+  }
 
+  /**
+   * Global critical walls (from spawns). Kept for compatibility / status display.
+   */
+  getAttackableWalls() {
+    const reachable = this._floodReachableFromSpawns();
+    const candidates = [];
+
+    for (const key of this.wallHp.keys()) {
+      const [x, y] = key.split(',').map(Number);
+      for (const dir of DIRS) {
+        const nx = x + dir.dx;
+        const ny = y + dir.dy;
+        if (reachable.has(`${nx},${ny}`)) {
+          candidates.push({ x, y, hp: this.wallHp.get(key) });
+          break;
+        }
+      }
+    }
+
+    const critical = [];
     for (const wall of candidates) {
       if (this._wouldOpenPathIfRemoved(wall.x, wall.y)) {
         critical.push(wall);
       }
     }
-
     return critical;
   }
 
-  /**
-   * Temporarily treat the wall as walkable and check if a path to the orb appears.
-   */
   _wouldOpenPathIfRemoved(wx, wy) {
     const original = this.tiles[wy][wx];
-    // Simulate removal
     this.tiles[wy][wx] = TILE.PATH;
-
     const opens = this.findAnyPathToOrb() !== null;
-
-    // Restore
     this.tiles[wy][wx] = original;
     return opens;
   }
 
-  /**
-   * Pick the best critical wall for an enemy to attack (closest to the enemy).
-   */
+  _wouldOpenPathFromIfRemoved(fromX, fromY, wx, wy) {
+    const original = this.tiles[wy][wx];
+    this.tiles[wy][wx] = TILE.PATH;
+    const path = this.findPath({ x: fromX, y: fromY }, this.orb);
+    this.tiles[wy][wx] = original;
+    return path !== null;
+  }
+
   getNearestAttackableWall(fromX, fromY) {
     const walls = this.getAttackableWalls();
     if (walls.length === 0) return null;
@@ -321,10 +326,18 @@ export class GameMap {
   }
 
   _floodReachableFromSpawns() {
+    return this._floodReachableFromMultiple(this.spawns);
+  }
+
+  _floodReachableFrom(start) {
+    return this._floodReachableFromMultiple([start]);
+  }
+
+  _floodReachableFromMultiple(starts) {
     const visited = new Set();
     const queue = [];
 
-    for (const s of this.spawns) {
+    for (const s of starts) {
       if (this.isWalkable(s.x, s.y)) {
         const k = `${s.x},${s.y}`;
         visited.add(k);
@@ -351,7 +364,6 @@ export class GameMap {
   // Debug / utility
   // ─────────────────────────────────────────────
 
-  /** Returns a simple string representation for console */
   toString() {
     const symbols = {
       [TILE.EMPTY]: '.',
@@ -393,16 +405,7 @@ function reconstructPath(cameFrom, current) {
 // Example starter map (for testing)
 // ─────────────────────────────────────────────
 
-/**
- * Creates a simple test map with one path that can be blocked.
- * Layout legend:
- *   . = EMPTY
- *   · = PATH
- *   S = SPAWN
- *   O = ORB
- */
 export function createTestMap() {
-  // 12x8 example
   const W = 14;
   const H = 10;
   const layout = Array.from({ length: H }, () => Array(W).fill(TILE.EMPTY));
