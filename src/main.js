@@ -494,6 +494,10 @@ function forgeGem(typeId) {
   selectedInventoryGem2 = null;
   renderGemInventory();
   updateGoldHud();
+  if (selectedTowerKey && socketGemOnTower(selectedTowerKey)) {
+    draw();
+    closeBuild();
+  }
 }
 function fuseSelectedGems() {
   if (!canFuseSelectedGems()) { setBuildHint('Seleccioná dos gemas del mismo tipo y nivel.'); return; }
@@ -1037,6 +1041,11 @@ function showTileActions(tile, x, y, key) {
       });
     } else {
       addAction('💎 Colocar gema', () => {
+        if (selectedInventoryGem && socketGemOnTower(key)) {
+          draw();
+          closeBuild();
+          return;
+        }
         forge.hidden = false;
         const shop = document.getElementById('gem-shop');
         shop.replaceChildren();
