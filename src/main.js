@@ -63,6 +63,12 @@ const enemies = [];
 let placeWallMode = true;
 let lastTime = performance.now();
 
+// Gnoll sprite (subí el archivo en assets/enemies/gnoll.png)
+const gnollImage = new Image();
+let gnollImageReady = false;
+gnollImage.onload = () => { gnollImageReady = true; };
+gnollImage.src = 'assets/enemies/gnoll.png';
+
 const TILE_SIZE = 32;
 
 // Path texture: prefer real file in assets/, fallback to embedded data URL
@@ -135,7 +141,7 @@ function drawPlaceholderDecor(d, def) {
   }
 }
 
-function draw() {
+function draw(now = performance.now()) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   for (let y = 0; y < map.height; y++) {
@@ -214,25 +220,45 @@ function draw() {
     ctx.stroke();
   }
 
-  for (const e of enemies) {
-    if (e.state === ENEMY_STATE.DEAD) continue;
+  enemies.forEach((e, index) => {
+    if (e.state === ENEMY_STATE.DEAD) return;
 
     const ex = e.x * TILE_SIZE + TILE_SIZE / 2;
     const ey = e.y * TILE_SIZE + TILE_SIZE / 2;
 
-    ctx.beginPath();
-    ctx.arc(ex, ey, 10, 0, Math.PI * 2);
-    ctx.fillStyle = e.state === ENEMY_STATE.ATTACKING ? '#e87a6a' : '#7ec8e3';
-    ctx.fill();
-    ctx.strokeStyle = '#111';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+    // Saltito continuo: se eleva un poco y aumenta suavemente de tamaño.
+    const bounce = (Math.sin(now * 0.008 + index * 1.7) + 1) / 2;
+    const scale = 1 + bounce * 0.12;
+    const lift = bounce * 3.5;
 
+    if (gnollImageReady) {
+      const drawWidth = TILE_SIZE * 0.9 * scale;
+      const drawHeight = drawWidth * (gnollImage.height / gnollImage.width);
+      const feetY = ey + TILE_SIZE * 0.28 - lift;
+      ctx.drawImage(
+        gnollImage,
+        ex - drawWidth / 2,
+        feetY - drawHeight,
+        drawWidth,
+        drawHeight
+      );
+    } else {
+      // Fallback mientras se carga la imagen o si todavía no está subida.
+      ctx.beginPath();
+      ctx.arc(ex, ey - lift, 10 * scale, 0, Math.PI * 2);
+      ctx.fillStyle = e.state === ENEMY_STATE.ATTACKING ? '#e87a6a' : '#7ec8e3';
+      ctx.fill();
+      ctx.strokeStyle = '#111';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    // Barra de vida
     ctx.fillStyle = '#222';
-    ctx.fillRect(ex - 10, ey - 16, 20, 3);
+    ctx.fillRect(ex - 10, ey - 19 - lift, 20, 3);
     ctx.fillStyle = '#6dce8a';
-    ctx.fillRect(ex - 10, ey - 16, 20 * (e.hp / e.maxHp), 3);
-  }
+    ctx.fillRect(ex - 10, ey - 19 - lift, 20 * (e.hp / e.maxHp), 3);
+  });
 }
 
 function update(dt) {
@@ -253,7 +279,7 @@ function loop(now) {
   const dt = Math.min((now - lastTime) / 1000, 0.05);
   lastTime = now;
   update(dt);
-  draw();
+  draw(now);
   requestAnimationFrame(loop);
 }
 
