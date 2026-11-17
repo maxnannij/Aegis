@@ -632,6 +632,7 @@ function loop(now) {
   const worldX = (cx - camera.x) / camera.zoom, worldY = (cy - camera.y) / camera.zoom;
   camera.zoom = Math.max(.55, Math.min(2.8, camera.zoom * factor));
   camera.x = cx - worldX * camera.zoom; camera.y = cy - worldY * camera.zoom;
+  clampCamera();
 }
 document.getElementById('zoom-in').addEventListener('click', () => zoomAtCenter(1.2));
 document.getElementById('zoom-out').addEventListener('click', () => zoomAtCenter(1 / 1.2));
@@ -689,42 +690,133 @@ function handleMapClick(ev) {
 }
 
 canvas.addEventListener('contextmenu', ev => ev.preventDefault());
-let cameraPointer = null;
+
+// Gestos móviles sin conflictos: un dedo construye; dos dedos desplazan y pellizcan.
+// El modo Mano habilita el desplazamiento con un dedo cuando el jugador lo necesita.
+const activePointers = new Map();
+let handMode = false;
+let gestureState = null;
+let suppressNextTap = false;
+const handButton = document.getElementById('pan-mode');
+handButton.addEventListener('click', () => {
+  handMode = !handMode;
+  handButton.classList.toggle('active', handMode);
+  handButton.setAttribute('aria-pressed', String(handMode));
+  handButton.textContent = handMode ? '✋' : '☝';
+  handButton.setAttribute('aria-label', handMode ? 'Desactivar modo desplazamiento' : 'Activar modo desplazamiento');
+});
+
+function clampCamera() {
+  const minX = canvas.width * (1 - camera.zoom);
+  const minY = canvas.height * (1 - camera.zoom);
+  camera.x = Math.min(0, Math.max(minX, camera.x));
+  camera.y = Math.min(0, Math.max(minY, camera.y));
+}
+function getTouchPair() {
+  return [...activePointers.values()].slice(0, 2);
+}
+function beginPinch() {
+  const pair = getTouchPair();
+  if (pair.length < 2) return;
+  const [a,b] = pair;
+  const mid = { x:(a.x+b.x)/2, y:(a.y+b.y)/2 };
+  const rect = canvas.getBoundingClientRect();
+  const px = (mid.x-rect.left)*canvas.width/rect.width;
+  const py = (mid.y-rect.top)*canvas.height/rect.height;
+  gestureState = {
+    type:'pinch',
+    distance:Math.max(1,Math.hypot(b.x-a.x,b.y-a.y)),
+    zoom:camera.zoom,
+    worldX:(px-camera.x)/camera.zoom,
+    worldY:(py-camera.y)/camera.zoom
+  };
+  suppressNextTap = true;
+}
 canvas.addEventListener('pointerdown', ev => {
   if (!gameStarted) return;
   ev.preventDefault();
-  const canPan = ev.button === 1 || ev.button === 2 || (ev.pointerType === 'touch');
-  cameraPointer = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, lastX: ev.clientX, lastY: ev.clientY, pan: canPan, moved: false, button: ev.button };
-  if (canPan) canvas.setPointerCapture(ev.pointerId);
+  if (ev.pointerType === 'mouse' && ev.button !== 0 && ev.button !== 1 && ev.button !== 2) return;
+  canvas.setPointerCapture(ev.pointerId);
+  activePointers.set(ev.pointerId,{x:ev.clientX,y:ev.clientY,startX:ev.clientX,startY:ev.clientY,button:ev.button,pointerType:ev.pointerType,moved:false});
+  if (activePointers.size === 2 && ev.pointerType !== 'mouse') beginPinch();
+  else if (activePointers.size === 1) {
+    const p=activePointers.get(ev.pointerId);
+    gestureState={type:(ev.pointerType==='mouse'&&ev.button===1)||(ev.pointerType!=='mouse'&&handMode)?'pan':'tap',id:ev.pointerId};
+  } else {
+    gestureState={type:'ignore'};
+    suppressNextTap=true;
+  }
 });
 canvas.addEventListener('pointermove', ev => {
-  if (!cameraPointer || cameraPointer.id !== ev.pointerId) return;
-  const dx = ev.clientX - cameraPointer.lastX, dy = ev.clientY - cameraPointer.lastY;
-  if (cameraPointer.pan || (Math.hypot(ev.clientX-cameraPointer.x, ev.clientY-cameraPointer.y) > 7 && ev.pointerType === 'touch' && !buildSelection)) {
-    cameraPointer.pan = true; cameraPointer.moved = true;
-    const rect = canvas.getBoundingClientRect();
-    camera.x += dx * canvas.width / rect.width; camera.y += dy * canvas.height / rect.height;
+  const p=activePointers.get(ev.pointerId);
+  if (!p) return;
+  const prevX=p.x,prevY=p.y;
+  p.x=ev.clientX;p.y=ev.clientY;
+  if(Math.hypot(p.x-p.startX,p.y-p.startY)>8)p.moved=true;
+
+  if(activePointers.size>=2){
+    const pair=getTouchPair();
+    if(!gestureState||gestureState.type!=='pinch')beginPinch();
+    if(pair.length>=2&&gestureState?.type==='pinch'){
+      const [a,b]=pair,rect=canvas.getBoundingClientRect();
+      const midX=((a.x+b.x)/2-rect.left)*canvas.width/rect.width;
+      const midY=((a.y+b.y)/2-rect.top)*canvas.height/rect.height;
+      const distance=Math.max(1,Math.hypot(b.x-a.x,b.y-a.y));
+      camera.zoom=Math.max(.55,Math.min(2.8,gestureState.zoom*distance/gestureState.distance));
+      camera.x=midX-gestureState.worldX*camera.zoom;
+      camera.y=midY-gestureState.worldY*camera.zoom;
+      clampCamera();
+    }
+    suppressNextTap=true;
+    return;
   }
-  cameraPointer.lastX = ev.clientX; cameraPointer.lastY = ev.clientY;
+  if(!gestureState||gestureState.id!==ev.pointerId)return;
+  if(gestureState.type==='pan'){
+    const rect=canvas.getBoundingClientRect();
+    camera.x+=(p.x-prevX)*canvas.width/rect.width;
+    camera.y+=(p.y-prevY)*canvas.height/rect.height;
+    clampCamera();
+  }else if(gestureState.type==='tap'&&p.moved){
+    // Arrastrar con un dedo en modo construcción cancela el toque; no mueve ni construye.
+    gestureState.type='cancel';
+    suppressNextTap=true;
+  }
 });
-canvas.addEventListener('pointerup', ev => {
-  if (!cameraPointer || cameraPointer.id !== ev.pointerId) return;
-  const gesture = cameraPointer; cameraPointer = null;
-  if (!gesture.moved && !gesture.pan) handleMapClick({ clientX: ev.clientX, clientY: ev.clientY, button: gesture.button });
-  if (canvas.hasPointerCapture(ev.pointerId)) canvas.releasePointerCapture(ev.pointerId);
-});
-canvas.addEventListener('pointercancel', () => { cameraPointer = null; });
-canvas.addEventListener('wheel', ev => {
-  if (!gameStarted) return;
+function finishPointer(ev,cancelled=false){
+  const p=activePointers.get(ev.pointerId);
+  if(!p)return;
+  const wasMultiTouch=activePointers.size>1||gestureState?.type==='pinch'||gestureState?.type==='ignore';
+  activePointers.delete(ev.pointerId);
+  if(wasMultiTouch)suppressNextTap=true;
+  if(gestureState?.id===ev.pointerId||activePointers.size===0){
+    if(!cancelled&&!wasMultiTouch&&gestureState?.type==='tap'&&!p.moved&&!suppressNextTap){
+      handleMapClick({clientX:ev.clientX,clientY:ev.clientY,button:p.button});
+    }
+    gestureState=null;
+  }
+  if(activePointers.size===1&&wasMultiTouch){
+    const remaining=[...activePointers.entries()][0];
+    gestureState={type:'cancel',id:remaining[0]};
+  }
+  if(activePointers.size===0){
+    if(canvas.hasPointerCapture(ev.pointerId))canvas.releasePointerCapture(ev.pointerId);
+    suppressNextTap=false;
+  }
+}
+canvas.addEventListener('pointerup',ev=>finishPointer(ev,false));
+canvas.addEventListener('pointercancel',ev=>finishPointer(ev,true));
+canvas.addEventListener('lostpointercapture',ev=>finishPointer(ev,true));
+canvas.addEventListener('wheel',ev=>{
+  if(!gameStarted)return;
   ev.preventDefault();
-  const rect = canvas.getBoundingClientRect();
-  const px = (ev.clientX - rect.left) * canvas.width / rect.width;
-  const py = (ev.clientY - rect.top) * canvas.height / rect.height;
-  const beforeX = (px - camera.x) / camera.zoom, beforeY = (py - camera.y) / camera.zoom;
-  const factor = Math.exp(-ev.deltaY * 0.0012);
-  camera.zoom = Math.max(.55, Math.min(2.8, camera.zoom * factor));
-  camera.x = px - beforeX * camera.zoom; camera.y = py - beforeY * camera.zoom;
-}, { passive: false });
+  const rect=canvas.getBoundingClientRect();
+  const px=(ev.clientX-rect.left)*canvas.width/rect.width;
+  const py=(ev.clientY-rect.top)*canvas.height/rect.height;
+  const worldX=(px-camera.x)/camera.zoom,worldY=(py-camera.y)/camera.zoom;
+  camera.zoom=Math.max(.55,Math.min(2.8,camera.zoom*Math.exp(-ev.deltaY*.0012)));
+  camera.x=px-worldX*camera.zoom;camera.y=py-worldY*camera.zoom;
+  clampCamera();
+},{passive:false});
 
 // Panel lateral de oleadas, inspirado en la lectura vertical de GemCraft: Labyrinth.
 const waveRoot = document.createElement('aside');

@@ -183,3 +183,15 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 #camera-controls button { width:42px; height:42px; border:1px solid rgba(201,168,106,.55); border-radius:10px; color:#f0d49a; background:rgba(20,17,27,.94); box-shadow:0 4px 14px rgba(0,0,0,.4); font:700 21px Georgia,serif; cursor:pointer; }
 #camera-controls button:active { background:#3b2d40; }
 #camera-controls #zoom-reset { font-size:18px; }
+
+
+/* Gestos táctiles: construcción por toque y cámara por gesto dedicado. */
+#map-canvas { touch-action:none; }
+#camera-controls button { min-width:44px; min-height:44px; }
+#camera-controls #pan-mode { font-size:19px; }
+#camera-controls #pan-mode.active {
+  border-color:#f0d49a;
+  color:#17120b;
+  background:linear-gradient(145deg,#f0d49a,#a77b43);
+  box-shadow:0 0 0 2px rgba(201,168,106,.22),0 4px 14px rgba(0,0,0,.4);
+}
