@@ -1,0 +1,129 @@
+:root {
+  --bg: #0f0e0c;
+  --surface: #1a1814;
+  --text: #e8e0d0;
+  --muted: #9a9080;
+  --accent: #1F8A68;
+  --ember: #E08A45;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+#app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #333;
+  padding-bottom: 1rem;
+}
+
+h1 {
+  font-size: 2.4rem;
+  letter-spacing: 0.05em;
+  color: var(--ember);
+}
+
+.subtitle {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+h2 {
+  font-size: 1.3rem;
+  margin: 1.5rem 0 0.75rem;
+  color: var(--accent);
+}
+
+.gem-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.gem-card {
+  background: var(--surface);
+  border: 1px solid #2a2824;
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  transition: border-color 0.15s;
+}
+
+.gem-card:hover {
+  border-color: var(--accent);
+}
+
+.gem-visual {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #111;
+  box-shadow: 0 0 12px rgba(0,0,0,0.4);
+  position: relative;
+}
+
+.gem-visual.grade-1 { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+.gem-visual.grade-3 { border-radius: 4px; }
+.gem-visual.grade-6 { transform: rotate(45deg); border-radius: 4px; }
+.gem-visual.grade-12 { border-radius: 50%; }
+
+.gem-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.gem-color-name {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.gem-desc {
+  font-size: 0.78rem;
+  color: #b0a890;
+  text-align: center;
+}
+
+.gem-stats {
+  font-size: 0.75rem;
+  color: #888;
+  text-align: center;
+}
+
+footer {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid #333;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+footer a {
+  color: var(--accent);
+}
