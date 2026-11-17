@@ -2,50 +2,23 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#10130f" />
   <title>Aegis – Tower Defense</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div id="app">
-    <header>
-      <h1>Aegis</h1>
-      <p class="subtitle">Tower Defense inspirado en GemCraft Labyrinth</p>
-    </header>
-
-    <!-- MAP DEMO -->
-    <section id="map-demo">
-      <h2>Lógica de Mapas</h2>
-      <p>
-        Enemigos solo caminan por <strong>caminos</strong>. Podés colocar <strong>muros</strong> para redirigir.
-        Si bloqueás todos los accesos, los enemigos atacan los muros hasta destruirlos.
-      </p>
-
-      <div class="controls">
-        <button id="btn-toggle-wall">Modo: Colocar Muro</button>
-        <button id="btn-spawn">Spawnear enemigo</button>
-        <button id="btn-clear-walls">Quitar todos los muros</button>
-        <span id="status" class="status">Path libre</span>
-      </div>
-
-      <div id="map-container">
-        <canvas id="map-canvas" width="700" height="500"></canvas>
-      </div>
-
-      <p class="hint">Click en un tile de camino para colocar/quitar muro. Los enemigos se mueven solos.</p>
-    </section>
-
-    <section id="gem-design">
-      <h2>Gemas Básicas (Diseño)</h2>
-      <p>Estas son las 8 gemas del original. Las imágenes las vas a pasar después; por ahora se muestran con color y forma simple.</p>
-      <div id="gem-grid" class="gem-grid"></div>
-    </section>
-
-    <footer>
-      <p>Repo: <a href="https://github.com/maxnannij/Aegis" target="_blank">maxnannij/Aegis</a></p>
-    </footer>
-  </div>
-
+  <main id="app">
+    <div id="map-container">
+      <canvas id="map-canvas" width="480" height="640" aria-label="Mapa de juego"></canvas>
+    </div>
+    <div id="game-status"><span id="status" class="status">Path libre</span></div>
+    <div class="legacy-controls" aria-hidden="true">
+      <button id="btn-toggle-wall" type="button">Modo: Colocar Muro</button>
+      <button id="btn-spawn" type="button">Spawnear enemigo</button>
+      <button id="btn-clear-walls" type="button">Quitar todos los muros</button>
+    </div>
+  </main>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>
