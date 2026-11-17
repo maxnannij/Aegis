@@ -65,14 +65,29 @@ let lastTime = performance.now();
 
 const TILE_SIZE = 32;
 
-// Path cobblestone texture
-let pathPattern = null;
-const pathImg = new Image();
-pathImg.onload = () => {
-  // Pattern tiles the image across the canvas
-  pathPattern = ctx.createPattern(pathImg, 'repeat');
-};
-pathImg.src = PATH_TEXTURE_DATA_URL;
+// Path texture: prefer real file in assets/, fallback to embedded data URL
+let pathImg = null;
+let pathImgReady = false;
+
+function loadPathTexture() {
+  const img = new Image();
+  img.onload = () => {
+    pathImg = img;
+    pathImgReady = true;
+  };
+  img.onerror = () => {
+    // Fallback while the JPG is not yet in the repo
+    const fb = new Image();
+    fb.onload = () => {
+      pathImg = fb;
+      pathImgReady = true;
+    };
+    fb.src = PATH_TEXTURE_DATA_URL;
+  };
+  // Primary: the file you place in the repo
+  img.src = 'assets/tiles/path_cobblestone.jpg';
+}
+loadPathTexture();
 
 const GROUND_COLORS = {
   [GROUND.GRASS]: '#1e2a1a',
@@ -81,17 +96,18 @@ const GROUND_COLORS = {
   [GROUND.STONE]: '#2c2c2c',
 };
 
-const TILE_COLORS = {
-  [TILE.EMPTY]: null,
-  [TILE.PATH]: null, // use texture
-  [TILE.WALL]: '#6b4e3d',
-  [TILE.SPAWN]: null,
-  [TILE.ORB]: null,
-  [TILE.TRAP]: null,
-};
-
 function isPathLike(t) {
   return t === TILE.PATH || t === TILE.SPAWN || t === TILE.ORB || t === TILE.TRAP || t === TILE.WALL;
+}
+
+function drawPathTile(px, py) {
+  if (pathImgReady && pathImg) {
+    // Each tile gets the full cobblestone image scaled to the cell
+    ctx.drawImage(pathImg, 0, 0, pathImg.width, pathImg.height, px, py, TILE_SIZE, TILE_SIZE);
+  } else {
+    ctx.fillStyle = '#4a4034';
+    ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+  }
 }
 
 function drawPlaceholderDecor(d, def) {
@@ -129,24 +145,16 @@ function draw() {
       const px = x * TILE_SIZE;
       const py = y * TILE_SIZE;
 
-      if (isPathLike(t) && pathPattern) {
-        // Cobblestone texture for path / spawn / orb / wall base
-        ctx.fillStyle = pathPattern;
-        ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-      } else if (isPathLike(t)) {
-        // Texture still loading
-        ctx.fillStyle = '#4a4034';
-        ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+      if (isPathLike(t)) {
+        drawPathTile(px, py);
       } else {
         ctx.fillStyle = GROUND_COLORS[g] ?? '#1a1814';
         ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
       }
 
-      // Subtle grid
       ctx.strokeStyle = 'rgba(0,0,0,0.2)';
       ctx.strokeRect(px, py, TILE_SIZE, TILE_SIZE);
 
-      // Overlays for special tiles
       if (t === TILE.SPAWN) {
         ctx.fillStyle = 'rgba(109, 206, 138, 0.35)';
         ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
@@ -178,7 +186,6 @@ function draw() {
     }
   }
 
-  // Decorations
   const sortedDecor = [...terrain.decorations].sort((a, b) => a.y - b.y);
   for (const d of sortedDecor) {
     const def = DECOR_TYPES[d.typeId];
@@ -194,7 +201,6 @@ function draw() {
     }
   }
 
-  // Enemy path debug
   if (enemies.length > 0 && enemies[0].path?.length) {
     ctx.strokeStyle = 'rgba(109, 206, 138, 0.4)';
     ctx.lineWidth = 2;
@@ -208,7 +214,6 @@ function draw() {
     ctx.stroke();
   }
 
-  // Enemies
   for (const e of enemies) {
     if (e.state === ENEMY_STATE.DEAD) continue;
 
@@ -299,5 +304,3 @@ canvas.width = map.width * TILE_SIZE;
 canvas.height = map.height * TILE_SIZE;
 
 requestAnimationFrame(loop);
-
-console.log(`Aegis map ${map.width}×${map.height} – cobblestone path texture loaded`);
