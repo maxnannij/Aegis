@@ -632,6 +632,7 @@ function loop(now) {
   const worldX = (cx - camera.x) / camera.zoom, worldY = (cy - camera.y) / camera.zoom;
   camera.zoom = Math.max(.55, Math.min(2.8, camera.zoom * factor));
   camera.x = cx - worldX * camera.zoom; camera.y = cy - worldY * camera.zoom;
+  clampCamera();
 }
 document.getElementById('zoom-in').addEventListener('click', () => zoomAtCenter(1.2));
 document.getElementById('zoom-out').addEventListener('click', () => zoomAtCenter(1 / 1.2));
@@ -724,7 +725,7 @@ function beginPinch() {
   const a = pair[0], b = pair[1];
   const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
   const rect = canvas.getBoundingClientRect();
-  const point = { x: mid.x * canvas.width / rect.width, y: mid.y * canvas.height / rect.height };
+  const point = { x: (mid.x - rect.left) * canvas.width / rect.width, y: (mid.y - rect.top) * canvas.height / rect.height };
   gestureState = {
     type: 'pinch',
     distance: Math.max(1, Math.hypot(b.x-a.x, b.y-a.y)),
