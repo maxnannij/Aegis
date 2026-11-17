@@ -68,6 +68,25 @@ const enemies = [];
 let placeWallMode = true;
 let lastTime = performance.now();
 
+// ── Oleadas ─────────────────────────────────────
+const WAVE_TOTAL = 12;
+const waves = Array.from({ length: WAVE_TOTAL }, (_, i) => ({
+  number: i + 1,
+  count: 5 + i * 2,
+  hp: 35 + i * 13,
+  speed: 2.15 + Math.min(i * 0.045, 0.5),
+  damage: 8 + Math.floor(i * 1.3),
+}));
+let currentWave = 0;
+let waveState = 'ready'; // ready | running | complete
+let spawnRemaining = 0;
+let spawnTimer = 0;
+let waveSpawned = 0;
+let waveResolved = 0;
+let waveElapsed = 0;
+let waveUiSignature = '';
+
+
 // Gnoll sprite (subí el archivo en assets/enemies/Gnoll.png)
 const gnollImage = new Image();
 let gnollImageReady = false;
@@ -286,13 +305,36 @@ function draw(now = performance.now()) {
 }
 
 function update(dt) {
+  if (waveState === 'running') {
+    waveElapsed += dt;
+    spawnTimer -= dt;
+    if (spawnRemaining > 0 && spawnTimer <= 0) {
+      const wave = waves[currentWave - 1];
+      const spawn = map.spawns[Math.floor(Math.random() * map.spawns.length)] || { x: 7, y: 0 };
+      enemies.push(new Enemy({
+        x: spawn.x, y: spawn.y, map,
+        hp: wave.hp, speed: wave.speed, damage: wave.damage,
+      }));
+      spawnRemaining--;
+      waveSpawned++;
+      spawnTimer = 0.82;
+    }
+  }
+
   for (const e of enemies) e.update(dt);
 
   for (let i = enemies.length - 1; i >= 0; i--) {
     if (enemies[i].state === ENEMY_STATE.DEAD || enemies[i].state === ENEMY_STATE.REACHING_ORB) {
       enemies.splice(i, 1);
+      if (waveState === 'running') waveResolved++;
     }
   }
+
+  if (waveState === 'running' && spawnRemaining === 0 && enemies.length === 0) {
+    waveState = 'complete';
+    renderWavePanel();
+  }
+  renderWaveProgress();
 
   const blocked = map.isFullyBlocked();
   statusEl.textContent = blocked ? '¡CAMINO BLOQUEADO!' : 'Path libre';
@@ -335,6 +377,83 @@ canvas.addEventListener('pointerdown', (ev) => {
   }
   draw();
 });
+
+// Panel lateral de oleadas, inspirado en la lectura vertical de GemCraft: Labyrinth.
+const waveRoot = document.createElement('aside');
+waveRoot.id = 'wave-sidebar';
+waveRoot.innerHTML = `
+  <div class="wave-heading"><span>OLEADAS</span><strong id="wave-current">0 / ${WAVE_TOTAL}</strong></div>
+  <div class="wave-current-card">
+    <div class="wave-number" id="wave-number">01</div>
+    <div class="wave-info"><strong id="wave-title">Preparado</strong><small id="wave-detail">12 oleadas</small></div>
+  </div>
+  <div class="wave-progress-track"><div id="wave-progress-fill"></div></div>
+  <div class="wave-counts"><span id="wave-progress-text">Sin iniciar</span><span id="wave-alive">0 en mapa</span></div>
+  <button id="wave-start" type="button">▶ Iniciar oleada</button>
+  <div class="wave-list" id="wave-list" aria-label="Lista de oleadas"></div>
+`;
+document.getElementById('app').appendChild(waveRoot);
+const waveStartButton = document.getElementById('wave-start');
+
+function startWave() {
+  if (waveState === 'running' || currentWave >= WAVE_TOTAL) return;
+  currentWave++;
+  const wave = waves[currentWave - 1];
+  waveState = 'running';
+  spawnRemaining = wave.count;
+  waveSpawned = 0;
+  waveResolved = 0;
+  waveElapsed = 0;
+  spawnTimer = 0.15;
+  renderWavePanel();
+}
+
+function renderWaveProgress() {
+  const total = waves[currentWave - 1]?.count ?? 0;
+  const progress = total ? Math.min(100, (waveResolved / total) * 100) : 0;
+  const fill = document.getElementById('wave-progress-fill');
+  const progressText = document.getElementById('wave-progress-text');
+  const alive = document.getElementById('wave-alive');
+  if (fill) fill.style.width = progress + '%';
+  if (progressText) {
+    progressText.textContent = waveState === 'ready' ? 'Sin iniciar'
+      : waveState === 'running' ? `${waveResolved} / ${total} derrotados`
+      : 'Oleada superada';
+  }
+  if (alive) alive.textContent = waveState === 'running'
+    ? `${enemies.length + spawnRemaining} restantes`
+    : `${enemies.length} en mapa`;
+}
+
+function renderWavePanel() {
+  const current = document.getElementById('wave-current');
+  const number = document.getElementById('wave-number');
+  const title = document.getElementById('wave-title');
+  const detail = document.getElementById('wave-detail');
+  const list = document.getElementById('wave-list');
+  if (!current || !list) return;
+  current.textContent = `${currentWave} / ${WAVE_TOTAL}`;
+  number.textContent = String(currentWave || 1).padStart(2, '0');
+  title.textContent = waveState === 'running' ? 'En curso'
+    : waveState === 'complete' ? 'Completada'
+    : currentWave === 0 ? 'Preparado' : 'Siguiente';
+  detail.textContent = waveState === 'running'
+    ? `Oleada ${currentWave} · ${waves[currentWave - 1].count} enemigos`
+    : currentWave >= WAVE_TOTAL ? 'Todas completadas' : `${waves[currentWave]?.count ?? waves[0].count} enemigos`;
+  waveStartButton.disabled = waveState === 'running' || currentWave >= WAVE_TOTAL;
+  waveStartButton.textContent = waveState === 'running' ? 'Oleada en curso'
+    : currentWave >= WAVE_TOTAL ? '✓ Campaña completada'
+    : waveState === 'complete' ? '▶ Siguiente oleada' : '▶ Iniciar oleada';
+  list.innerHTML = waves.map((wave, index) => {
+    const state = index < currentWave ? (index === currentWave - 1 && waveState === 'running' ? 'active' : 'done')
+      : index === currentWave && waveState !== 'running' ? 'next' : '';
+    return `<div class="wave-row ${state}"><span class="wave-dot">${index < currentWave && !(index === currentWave - 1 && waveState === 'running') ? '✓' : wave.number}</span><span>Oleada ${wave.number}</span><small>${wave.count}</small></div>`;
+  }).join('');
+  renderWaveProgress();
+}
+
+waveStartButton.addEventListener('click', startWave);
+renderWavePanel();
 
 btnWall.addEventListener('click', () => {
   placeWallMode = !placeWallMode;
