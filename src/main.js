@@ -493,8 +493,8 @@ function updateCombat(dt) {
     p.life -= dt;
     p.x += (p.vx || 0) * dt;
     p.y += (p.vy || 0) * dt;
-    p.vx *= .92;
-    p.vy *= .92;
+    p.vx = (p.vx || 0) * .92;
+    p.vy = (p.vy || 0) * .92;
     if (p.life <= 0) impactParticles.splice(i, 1);
   }
 }
