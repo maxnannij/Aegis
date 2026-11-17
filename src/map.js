@@ -7,6 +7,10 @@
  * - If every possible route is blocked → no path exists → enemies switch to
  *   ATTACK mode and start damaging the walls that are sealing the path.
  * - Once a wall is destroyed, path is recalculated and they resume walking.
+ *
+ * Important: enemies only attack walls that are *critical blockers*
+ * (walls that, if destroyed, would reopen a path to the orb).
+ * They do NOT attack random nearby walls.
  */
 
 export const TILE = {
@@ -243,34 +247,62 @@ export class GameMap {
   // ─────────────────────────────────────────────
 
   /**
-   * Find walls that are adjacent to the current reachable area of enemies.
-   * These are the walls the enemies will start attacking.
+   * Returns only the walls that are *critical blockers*.
    *
-   * Strategy:
-   * 1. Flood-fill from all spawns over currently walkable tiles → reachable set.
-   * 2. Any WALL that touches the reachable set is a candidate target.
+   * A wall is critical if:
+   * 1. It is adjacent to the area currently reachable from the spawns, AND
+   * 2. Temporarily removing it would open a path from a spawn to the orb.
+   *
+   * This prevents enemies from attacking irrelevant nearby walls.
    */
   getAttackableWalls() {
     const reachable = this._floodReachableFromSpawns();
-    const walls = [];
+    const candidates = [];
 
+    // 1. Collect walls that touch the reachable area
     for (const key of this.wallHp.keys()) {
       const [x, y] = key.split(',').map(Number);
-      // check if any neighbor is reachable
       for (const dir of DIRS) {
         const nx = x + dir.dx;
         const ny = y + dir.dy;
         if (reachable.has(`${nx},${ny}`)) {
-          walls.push({ x, y, hp: this.wallHp.get(key) });
+          candidates.push({ x, y, hp: this.wallHp.get(key) });
           break;
         }
       }
     }
-    return walls;
+
+    if (candidates.length === 0) return [];
+
+    // 2. Keep only walls that, if removed, reopen a path to the orb
+    const critical = [];
+
+    for (const wall of candidates) {
+      if (this._wouldOpenPathIfRemoved(wall.x, wall.y)) {
+        critical.push(wall);
+      }
+    }
+
+    return critical;
   }
 
   /**
-   * Pick the best wall for an enemy to attack (closest to the enemy).
+   * Temporarily treat the wall as walkable and check if a path to the orb appears.
+   */
+  _wouldOpenPathIfRemoved(wx, wy) {
+    const original = this.tiles[wy][wx];
+    // Simulate removal
+    this.tiles[wy][wx] = TILE.PATH;
+
+    const opens = this.findAnyPathToOrb() !== null;
+
+    // Restore
+    this.tiles[wy][wx] = original;
+    return opens;
+  }
+
+  /**
+   * Pick the best critical wall for an enemy to attack (closest to the enemy).
    */
   getNearestAttackableWall(fromX, fromY) {
     const walls = this.getAttackableWalls();
