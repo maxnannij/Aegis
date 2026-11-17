@@ -51,6 +51,73 @@ h2 {
   color: var(--accent);
 }
 
+/* ── Map demo ── */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+
+.controls button {
+  background: var(--surface);
+  border: 1px solid #3a3630;
+  color: var(--text);
+  padding: 0.45rem 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.controls button:hover {
+  background: #25221c;
+  border-color: var(--accent);
+}
+
+.controls button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.status {
+  margin-left: auto;
+  font-size: 0.9rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 4px;
+  background: #1a2a1a;
+  color: #6dce8a;
+}
+
+.status.blocked {
+  background: #2a1a1a;
+  color: #e87a6a;
+}
+
+#map-container {
+  background: #141210;
+  border: 1px solid #2a2824;
+  border-radius: 8px;
+  overflow: hidden;
+  display: inline-block;
+}
+
+#map-canvas {
+  display: block;
+  cursor: crosshair;
+  max-width: 100%;
+  height: auto;
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 0.5rem;
+}
+
+/* ── Gems ── */
 .gem-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
