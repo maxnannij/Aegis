@@ -627,7 +627,17 @@ function loop(now) {
   lastTime = now;
   if (gameStarted) update(dt);
   draw(now);
-  document.getElementById('start-game').addEventListener('click', () => {
+  function zoomAtCenter(factor) {
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  const worldX = (cx - camera.x) / camera.zoom, worldY = (cy - camera.y) / camera.zoom;
+  camera.zoom = Math.max(.55, Math.min(2.8, camera.zoom * factor));
+  camera.x = cx - worldX * camera.zoom; camera.y = cy - worldY * camera.zoom;
+}
+document.getElementById('zoom-in').addEventListener('click', () => zoomAtCenter(1.2));
+document.getElementById('zoom-out').addEventListener('click', () => zoomAtCenter(1 / 1.2));
+document.getElementById('zoom-reset').addEventListener('click', () => { camera.x = 0; camera.y = 0; camera.zoom = 1; });
+
+document.getElementById('start-game').addEventListener('click', () => {
   gameStarted = true;
   document.getElementById('start-menu').hidden = true;
   canvas.focus?.();
