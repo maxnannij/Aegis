@@ -4,20 +4,25 @@ Tower defense webapp inspirado en **GemCraft Labyrinth**.
 
 Fusiona gemas/torres, construye defensas, protege tu orbe.
 
-## Jugar
+## Jugar (demo)
 
-- **GitHub Pages**: (próximamente) `https://maxnannij.github.io/Aegis/`
-- Luego Netlify si se quiere.
+Activá GitHub Pages en el repo (Settings → Pages → branch `main` / root).
+Luego: `https://maxnannij.github.io/Aegis/`
 
-## Concepto (igual que el original)
+## Lógica de Mapas (implementada)
 
-- Gemas de 8 colores con habilidades únicas.
-- Fusiones: combina dos gemas para subir de grado o mezclar efectos.
-- Torres: estructuras donde colocás las gemas para que disparen.
-- Amplificadores, trampas, muros.
-- Mana como recurso y vidas.
+- Los enemigos **solo caminan por tiles de tipo PATH**.
+- Podés colocar **muros (WALL)** sobre los caminos para forzar rutas más largas / redirigir.
+- Pathfinding con **A\*** en tiempo real.
+- Si bloqueás **todos** los accesos al orbe → el mapa queda *fully blocked*.
+- En ese estado los enemigos pasan a **modo ataque**: se dirigen a los muros que están sellando el camino y los golpean hasta destruirlos.
+- Cuando un muro cae, se recalcula el path y vuelven a caminar normalmente.
 
-## Gemas básicas (diseño inicial)
+Archivos clave:
+- `src/map.js` → grid, tiles, A*, detección de bloqueo, muros atacables
+- `src/enemy.js` → comportamiento walk / attack
+
+## Gemas básicas
 
 | Color | Nombre | Efecto principal |
 |-------|--------|------------------|
@@ -30,15 +35,15 @@ Fusiona gemas/torres, construye defensas, protege tu orbe.
 | Cian | Shocking | Chance de paralizar |
 | Lima | Chain Hit | Chance de golpear múltiples enemigos |
 
-Grados 1-12+ con formas distintas (triángulo → círculo).
-
 ## Estado actual
 
-- Repositorio creado.
-- Diseño de gemas básicas listo.
-- Estructura del proyecto en desarrollo.
-- Imágenes de gemas: el usuario las proporcionará después.
+- [x] Repositorio + estructura base
+- [x] 8 gemas básicas + sistema de fusión (esqueleto)
+- [x] Lógica de mapas, pathfinding y ataque a muros
+- [ ] Imágenes de gemas (las vas a pasar)
+- [ ] Sistema de torres / colocación de gemas
+- [ ] Oleadas, mana, orbe, etc.
 
 ## Desarrollo
 
-HTML + Canvas + JS vanilla (fácil para GitHub Pages).
+HTML + Canvas + JS vanilla (sin build step → ideal para GitHub Pages).
