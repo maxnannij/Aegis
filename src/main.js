@@ -57,7 +57,6 @@ const GEM_COST = 25, WALL_COST = 4, TOWER_COST = 30, INVENTORY_LIMIT = 24;
 let gold = 120, nextGemId = 1, selectedInventoryGem = null, selectedInventoryGem2 = null;
 let selectedTowerKey = null;
 let buildSelection = null;
-let selectedGemType = 'yellow';
 const btnWall = document.getElementById('btn-toggle-wall');
 const btnSpawn = document.getElementById('btn-spawn');
 const btnClear = document.getElementById('btn-clear-walls');
