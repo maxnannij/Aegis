@@ -52,7 +52,8 @@ export class Enemy {
     this.attackStandTile = null;  // walkable tile adjacent to the wall
     this.attackCooldown = 0;
     // El sprite base mira hacia la derecha (0 radianes).
-    this.facingAngle = 0;\n    this.targetFacingAngle = 0;
+    this.facingAngle = 0;
+    this.targetFacingAngle = 0;
     this.id = crypto.randomUUID?.() ?? `e-${Date.now()}-${Math.random()}`;
   }
 
