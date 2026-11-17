@@ -50,3 +50,53 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   #build-panel { max-height: 76dvh; width: min(340px, 48vw); }
   #build-fab { width: 56px; height: 56px; }
 }
+
+/* Wave tracker: compact vertical rail on the right, always visible on mobile */
+#wave-sidebar {
+  position: fixed;
+  z-index: 15;
+  top: max(58px, calc(env(safe-area-inset-top) + 48px));
+  right: max(8px, env(safe-area-inset-right));
+  width: 116px;
+  max-height: min(66dvh, 520px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 9px 8px;
+  overflow: hidden;
+  border: 1px solid rgba(222,205,166,.24);
+  border-radius: 15px;
+  background: rgba(20,24,19,.91);
+  box-shadow: 0 8px 28px rgba(0,0,0,.48);
+  backdrop-filter: blur(12px);
+  pointer-events: auto;
+}
+.wave-heading { display:flex; align-items:center; justify-content:space-between; gap:4px; color:var(--muted); font-size:9px; font-weight:800; letter-spacing:.09em; }
+.wave-heading strong { color:#f0d49a; font-size:10px; letter-spacing:0; }
+.wave-current-card { display:flex; align-items:center; gap:7px; padding:7px 6px; border-radius:10px; background:rgba(196,154,84,.13); border:1px solid rgba(196,154,84,.25); }
+.wave-number { display:grid; place-items:center; flex:0 0 30px; width:30px; height:30px; border-radius:8px; background:linear-gradient(145deg,#e4c17f,#986b32); color:#1b160e; font-size:15px; font-weight:900; }
+.wave-info { min-width:0; display:flex; flex-direction:column; gap:2px; }
+.wave-info strong { color:#f4e5c7; font-size:11px; line-height:1.1; }
+.wave-info small { color:var(--muted); font-size:9px; line-height:1.2; }
+.wave-progress-track { height:5px; overflow:hidden; border-radius:9px; background:rgba(255,255,255,.12); }
+#wave-progress-fill { width:0%; height:100%; border-radius:inherit; background:linear-gradient(90deg,#6dce8a,#d5c879); transition:width .2s ease; }
+.wave-counts { display:flex; flex-direction:column; gap:2px; color:var(--muted); font-size:9px; }
+#wave-start { min-height:36px; padding:6px 5px; border:1px solid #c49a54; border-radius:9px; background:linear-gradient(145deg,#e7c98f,#b58240); color:#21190e; font:inherit; font-size:10px; font-weight:850; cursor:pointer; }
+#wave-start:disabled { border-color:rgba(255,255,255,.12); background:#34362f; color:#aaa99e; cursor:default; }
+.wave-list { display:flex; flex-direction:column; gap:3px; overflow-y:auto; min-height:0; scrollbar-width:thin; }
+.wave-row { display:flex; align-items:center; gap:6px; min-height:22px; padding:3px 5px; border-radius:6px; color:#a9a99d; font-size:9px; }
+.wave-row small { margin-left:auto; color:#85877d; font-size:9px; }
+.wave-dot { display:grid; place-items:center; flex:0 0 16px; width:16px; height:16px; border:1px solid rgba(255,255,255,.18); border-radius:50%; font-size:8px; font-weight:800; }
+.wave-row.active { color:#ffe2a9; background:rgba(196,154,84,.16); }
+.wave-row.active .wave-dot { border-color:#e5c17e; background:#b9853e; color:#20170c; }
+.wave-row.done { color:#8fd6a1; }
+.wave-row.done .wave-dot { border-color:#579b6c; background:#294d35; color:#b8f0c4; }
+.wave-row.next { color:#eee2ca; background:rgba(255,255,255,.06); }
+.wave-row.next .wave-dot { border-color:#d5b77a; color:#f2d59d; }
+
+@media (max-width: 420px) {
+  #wave-sidebar { width:106px; right:max(6px,env(safe-area-inset-right)); padding:8px 7px; max-height:62dvh; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  #wave-sidebar { top:8px; max-height:calc(100dvh - 16px); width:112px; }
+}
