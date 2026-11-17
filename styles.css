@@ -163,3 +163,18 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 #selected-tower-actions[hidden] { display:none; }
 #sell-selected-tower { width:100%; min-height:38px; border:1px solid #8a6840; border-radius:9px; background:#34251f; color:#f0d0a0; font:700 12px Georgia,serif; }
 #sell-selected-tower:active { background:#503329; }
+
+
+/* Menú inicial */
+.start-menu { position:fixed; z-index:100; inset:0; display:grid; place-items:center; padding:24px; background:radial-gradient(ellipse at 50% 42%,rgba(83,55,91,.55),rgba(7,6,11,.96) 68%),linear-gradient(135deg,#09080d,#17111c); }
+.start-menu[hidden] { display:none; }
+.start-card { width:min(560px,100%); padding:clamp(28px,6vw,56px); text-align:center; border:1px solid rgba(201,168,106,.48); border-radius:18px; background:linear-gradient(160deg,rgba(31,24,39,.96),rgba(12,10,17,.97)); box-shadow:0 24px 90px rgba(0,0,0,.72),inset 0 1px rgba(255,255,255,.05); }
+.start-kicker { color:#9d8aa9; font:700 10px system-ui,sans-serif; letter-spacing:.28em; }
+.start-card h1 { margin:18px 0 12px; color:#e2c58e; font:normal clamp(34px,8vw,58px) Georgia,serif; letter-spacing:.08em; text-shadow:0 4px 24px rgba(201,168,106,.18); }
+.start-card h1 span { color:#8e789d; font-size:.58em; }
+.start-copy { margin:0 0 28px; color:#c6b9cf; font-size:14px; }
+#start-game { min-width:220px; padding:14px 24px; border:1px solid #e0c58d; border-radius:9px; color:#21190e; background:linear-gradient(145deg,#f0d49a,#a77b43); font:700 15px Georgia,serif; cursor:pointer; box-shadow:0 8px 24px rgba(0,0,0,.35); }
+#start-game:hover { filter:brightness(1.08); transform:translateY(-1px); }
+.start-help { margin-top:24px; color:#887e91; font:11px/1.6 system-ui,sans-serif; }
+#map-canvas { cursor:grab; }
+#map-canvas:active { cursor:grabbing; }
