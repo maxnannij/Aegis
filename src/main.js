@@ -99,6 +99,10 @@ gnollImage.src = 'assets/enemies/Gnoll.png';
 
 const TILE_SIZE = 32;
 
+// Cámara independiente del mundo: desplazamiento en píxeles del canvas y zoom uniforme.
+const camera = { x: 0, y: 0, zoom: 1 };
+let gameStarted = false;
+
 function tileHash(x, y) {
   let h = (x * 374761393 + y * 668265263) ^ 0x5bd1e995;
   h = Math.imul(h ^ (h >>> 13), 1274126177);
@@ -285,6 +289,9 @@ function drawPlaceholderDecor(d, def) {
 
 function draw(now = performance.now()) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.translate(camera.x, camera.y);
+  ctx.scale(camera.zoom, camera.zoom);
 
   for (let y = 0; y < map.height; y++) {
     for (let x = 0; x < map.width; x++) {
@@ -415,6 +422,7 @@ function draw(now = performance.now()) {
     ctx.fill();
   }
   ctx.globalAlpha = 1;
+  ctx.restore();
 }
 
 
@@ -617,49 +625,43 @@ function update(dt) {
 function loop(now) {
   const dt = Math.min((now - lastTime) / 1000, 0.05);
   lastTime = now;
-  update(dt);
+  if (gameStarted) update(dt);
   draw(now);
-  requestAnimationFrame(loop);
+  document.getElementById('start-game').addEventListener('click', () => {
+  gameStarted = true;
+  document.getElementById('start-menu').hidden = true;
+  canvas.focus?.();
+});
+
+requestAnimationFrame(loop);
 }
 
-canvas.addEventListener('contextmenu', ev => ev.preventDefault());
-canvas.addEventListener('pointerdown', (ev) => {
-  ev.preventDefault();
+function canvasWorldPoint(ev) {
   const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  const x = Math.floor(((ev.clientX - rect.left) * scaleX) / TILE_SIZE);
-  const y = Math.floor(((ev.clientY - rect.top) * scaleY) / TILE_SIZE);
+  const sx = (ev.clientX - rect.left) * canvas.width / rect.width;
+  const sy = (ev.clientY - rect.top) * canvas.height / rect.height;
+  return { x: (sx - camera.x) / camera.zoom, y: (sy - camera.y) / camera.zoom };
+}
+function handleMapClick(ev) {
+  const point = canvasWorldPoint(ev);
+  const x = Math.floor(point.x / TILE_SIZE), y = Math.floor(point.y / TILE_SIZE);
   if (!map.inBounds(x, y)) return;
-  const tile = map.get(x, y);
-  const key = x + ',' + y;
-
+  const tile = map.get(x, y), key = x + ',' + y;
   if (ev.button === 2) {
-    if (tile === TILE.WALL && map.removeWall(x, y)) {
-      gold += 2;
-      updateGoldHud();
-    } else if (tile === TILE.TOWER) sellTowerAt(x, y);
-    draw();
-    return;
+    if (tile === TILE.WALL && map.removeWall(x, y)) { gold += 2; updateGoldHud(); }
+    else if (tile === TILE.TOWER) sellTowerAt(x, y);
+    draw(); return;
   }
-  if (tile === TILE.WALL && ev.button !== 2) {
-    if (map.removeWall(x, y)) {
-      gold += 2;
-      updateGoldHud();
-      setBuildHint('Muro vendido: recuperaste 2 de oro.');
-    }
-    draw();
-    return;
+  if (tile === TILE.WALL) {
+    if (map.removeWall(x, y)) { gold += 2; updateGoldHud(); setBuildHint('Muro vendido: recuperaste 2 de oro.'); }
+    draw(); return;
   }
   if (tile === TILE.TOWER) {
-    selectedTowerKey = key;
-    panel.hidden = false;
-    fab.setAttribute('aria-expanded', 'true');
+    selectedTowerKey = key; panel.hidden = false; fab.setAttribute('aria-expanded', 'true');
     document.getElementById('selected-tower-actions').hidden = false;
     if (selectedInventoryGem) socketGemOnTower(key);
     else setBuildHint('Torre seleccionada. Elegí una gema del inventario para engarzarla.');
-    draw();
-    return;
+    draw(); return;
   }
   selectedTowerKey = null;
   document.getElementById('selected-tower-actions').hidden = true;
@@ -670,14 +672,49 @@ canvas.addEventListener('pointerdown', (ev) => {
   } else if (buildSelection === 'tower') {
     if (tile !== TILE.EMPTY) return;
     if (gold < TOWER_COST) { setBuildHint('Oro insuficiente para construir una torre.'); return; }
-    map.set(x, y, TILE.TOWER);
-    placedTowers.set(key, null);
-    gold -= TOWER_COST;
-    selectedTowerKey = key;
-    updateGoldHud();
+    map.set(x, y, TILE.TOWER); placedTowers.set(key, null); gold -= TOWER_COST;
+    selectedTowerKey = key; updateGoldHud();
   }
   draw();
+}
+
+canvas.addEventListener('contextmenu', ev => ev.preventDefault());
+let cameraPointer = null;
+canvas.addEventListener('pointerdown', ev => {
+  if (!gameStarted) return;
+  ev.preventDefault();
+  const canPan = ev.button === 1 || ev.button === 2 || (ev.pointerType === 'touch' && !buildSelection);
+  cameraPointer = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, lastX: ev.clientX, lastY: ev.clientY, pan: canPan, moved: false, button: ev.button };
+  if (canPan) canvas.setPointerCapture(ev.pointerId);
 });
+canvas.addEventListener('pointermove', ev => {
+  if (!cameraPointer || cameraPointer.id !== ev.pointerId) return;
+  const dx = ev.clientX - cameraPointer.lastX, dy = ev.clientY - cameraPointer.lastY;
+  if (cameraPointer.pan || (Math.hypot(ev.clientX-cameraPointer.x, ev.clientY-cameraPointer.y) > 7 && ev.pointerType === 'touch' && !buildSelection)) {
+    cameraPointer.pan = true; cameraPointer.moved = true;
+    const rect = canvas.getBoundingClientRect();
+    camera.x += dx * canvas.width / rect.width; camera.y += dy * canvas.height / rect.height;
+  }
+  cameraPointer.lastX = ev.clientX; cameraPointer.lastY = ev.clientY;
+});
+canvas.addEventListener('pointerup', ev => {
+  if (!cameraPointer || cameraPointer.id !== ev.pointerId) return;
+  const gesture = cameraPointer; cameraPointer = null;
+  if (!gesture.moved && !gesture.pan) handleMapClick({ ...ev, button: gesture.button });
+  if (canvas.hasPointerCapture(ev.pointerId)) canvas.releasePointerCapture(ev.pointerId);
+});
+canvas.addEventListener('pointercancel', () => { cameraPointer = null; });
+canvas.addEventListener('wheel', ev => {
+  if (!gameStarted) return;
+  ev.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const px = (ev.clientX - rect.left) * canvas.width / rect.width;
+  const py = (ev.clientY - rect.top) * canvas.height / rect.height;
+  const beforeX = (px - camera.x) / camera.zoom, beforeY = (py - camera.y) / camera.zoom;
+  const factor = Math.exp(-ev.deltaY * 0.0012);
+  camera.zoom = Math.max(.55, Math.min(2.8, camera.zoom * factor));
+  camera.x = px - beforeX * camera.zoom; camera.y = py - beforeY * camera.zoom;
+}, { passive: false });
 
 // Panel lateral de oleadas, inspirado en la lectura vertical de GemCraft: Labyrinth.
 const waveRoot = document.createElement('aside');
