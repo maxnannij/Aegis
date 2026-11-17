@@ -63,11 +63,11 @@ const enemies = [];
 let placeWallMode = true;
 let lastTime = performance.now();
 
-// Gnoll sprite (subí el archivo en assets/enemies/gnoll.png)
+// Gnoll sprite (subí el archivo en assets/enemies/Gnoll.png)
 const gnollImage = new Image();
 let gnollImageReady = false;
 gnollImage.onload = () => { gnollImageReady = true; };
-gnollImage.src = 'assets/enemies/gnoll.png';
+gnollImage.src = 'assets/enemies/Gnoll.png';
 
 const TILE_SIZE = 32;
 
