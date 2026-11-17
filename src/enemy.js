@@ -50,7 +50,7 @@ export class Enemy {
     this.pathIndex = 0;
     this.targetWall = null;       // {x,y} wall being attacked
     this.attackStandTile = null;  // walkable tile adjacent to the wall
-    this.attackCooldown = 0;
+    this.attackCooldown = 0;\n    // El sprite base mira hacia la derecha (0 radianes).\n    this.facingAngle = 0;\n    this.targetFacingAngle = 0;
     this.id = crypto.randomUUID?.() ?? `e-${Date.now()}-${Math.random()}`;
   }
 
@@ -261,6 +261,13 @@ export class Enemy {
       if (onArriveWaypoint) onArriveWaypoint();
       return;
     }
+
+    // Actualizar orientación hacia el siguiente punto del recorrido.
+    this.targetFacingAngle = Math.atan2(dy, dx);
+    let angleDelta = this.targetFacingAngle - this.facingAngle;
+    while (angleDelta > Math.PI) angleDelta -= Math.PI * 2;
+    while (angleDelta < -Math.PI) angleDelta += Math.PI * 2;
+    this.facingAngle += angleDelta * Math.min(1, dt * 12);
 
     const step = this.speed * dt;
     if (step >= dist) {
