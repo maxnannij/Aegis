@@ -50,6 +50,10 @@ GEM_TYPE_LIST.forEach(id => grid.appendChild(renderGemCard(id)));
 const canvas = document.getElementById('map-canvas');
 const ctx = canvas.getContext('2d');
 const statusEl = document.getElementById('status');
+const placedTowers = new Map();
+let buildSelection = null;
+let selectedGemType = 'yellow';
+let selectedGemGrade = 1;
 const btnWall = document.getElementById('btn-toggle-wall');
 const btnSpawn = document.getElementById('btn-spawn');
 const btnClear = document.getElementById('btn-clear-walls');
@@ -177,6 +181,25 @@ function draw(now = performance.now()) {
         ctx.textAlign = 'center';
         ctx.fillText('O', px + TILE_SIZE / 2, py + TILE_SIZE / 2 + 4);
       }
+      if (t === TILE.TOWER) {
+        ctx.fillStyle = '#554b3d';
+        ctx.fillRect(px + 5, py + 5, TILE_SIZE - 10, TILE_SIZE - 10);
+        ctx.strokeStyle = '#d5b77a'; ctx.lineWidth = 2;
+        ctx.strokeRect(px + 5, py + 5, TILE_SIZE - 10, TILE_SIZE - 10);
+        const towerGem = placedTowers.get(`${x},${y}`);
+        if (towerGem) {
+          const gemColor = GEM_TYPES[towerGem.typeId]?.color || '#fff';
+          ctx.fillStyle = gemColor; ctx.beginPath();
+          ctx.moveTo(px + 16, py + 7); ctx.lineTo(px + 25, py + 16);
+          ctx.lineTo(px + 16, py + 25); ctx.lineTo(px + 7, py + 16); ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.stroke();
+          ctx.fillStyle = '#111'; ctx.font = 'bold 8px system-ui'; ctx.textAlign = 'center';
+          ctx.fillText(String(towerGem.grade), px + 16, py + 19);
+        } else {
+          ctx.fillStyle = '#d5b77a'; ctx.font = 'bold 12px system-ui'; ctx.textAlign = 'center';
+          ctx.fillText('T', px + 16, py + 20);
+        }
+      }
       if (t === TILE.WALL) {
         const hp = map.getWallHp(x, y);
         ctx.fillStyle = 'rgba(80, 50, 30, 0.75)';
@@ -283,19 +306,33 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
-canvas.addEventListener('click', (ev) => {
+canvas.addEventListener('pointerdown', (ev) => {
+  ev.preventDefault();
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / rect.width;
   const scaleY = canvas.height / rect.height;
   const x = Math.floor(((ev.clientX - rect.left) * scaleX) / TILE_SIZE);
   const y = Math.floor(((ev.clientY - rect.top) * scaleY) / TILE_SIZE);
-
   if (!map.inBounds(x, y)) return;
+  const tile = map.get(x, y);
 
-  if (placeWallMode) {
-    if (map.get(x, y) === TILE.PATH) map.placeWall(x, y, 100);
-    else if (map.get(x, y) === TILE.WALL) map.removeWall(x, y);
+  if (!buildSelection) {
+    if (tile === TILE.WALL) map.removeWall(x, y);
+    return;
   }
+  if (buildSelection === 'wall') {
+    if (tile === TILE.PATH) map.placeWall(x, y, 100);
+  } else if (buildSelection === 'tower') {
+    if (tile === TILE.EMPTY) {
+      map.set(x, y, TILE.TOWER);
+      placedTowers.set(`${x},${y}`, null);
+    }
+  } else if (buildSelection === 'gem') {
+    if (tile === TILE.TOWER) {
+      placedTowers.set(`${x},${y}`, createGem(selectedGemType, selectedGemGrade));
+    }
+  }
+  draw();
 });
 
 btnWall.addEventListener('click', () => {
@@ -323,6 +360,70 @@ btnClear.addEventListener('click', () => {
     }
   }
 });
+
+
+// ─────────────────────────────────────────────
+// Mobile construction palette
+// ─────────────────────────────────────────────
+const buildRoot = document.createElement('div');
+buildRoot.id = 'build-ui';
+buildRoot.innerHTML = `
+  <button id="build-fab" type="button" aria-label="Abrir construcción" aria-expanded="false">＋</button>
+  <section id="build-panel" aria-label="Construcción" hidden>
+    <div class="build-panel-head"><strong>Construcción</strong><button id="build-close" type="button" aria-label="Cerrar">×</button></div>
+    <div class="build-categories">
+      <button type="button" data-category="wall">Muros</button>
+      <button type="button" data-category="tower">Torres</button>
+      <button type="button" data-category="gem">Gemas</button>
+    </div>
+    <div id="build-options"></div>
+    <p id="build-hint">Elegí qué construir y tocá un casillero del mapa.</p>
+  </section>`;
+document.body.appendChild(buildRoot);
+const fab = document.getElementById('build-fab');
+const panel = document.getElementById('build-panel');
+const options = document.getElementById('build-options');
+const hint = document.getElementById('build-hint');
+const closeBuild = () => { panel.hidden = true; fab.setAttribute('aria-expanded', 'false'); };
+fab.addEventListener('click', () => {
+  panel.hidden = !panel.hidden;
+  fab.setAttribute('aria-expanded', String(!panel.hidden));
+});
+document.getElementById('build-close').addEventListener('click', closeBuild);
+
+function setBuildCategory(category) {
+  buildSelection = category;
+  panel.querySelectorAll('[data-category]').forEach(btn => btn.classList.toggle('selected', btn.dataset.category === category));
+  options.replaceChildren();
+  if (category === 'wall') {
+    options.innerHTML = '<button class="build-option selected" data-build="wall">🧱 Muro</button>';
+    hint.textContent = 'Tocá un casillero del camino para colocar un muro.';
+  } else if (category === 'tower') {
+    options.innerHTML = '<button class="build-option selected" data-build="tower">♜ Torre</button>';
+    hint.textContent = 'Tocá un terreno libre para construir una torre.';
+  } else {
+    const gemButtons = GEM_TYPE_LIST.map(id => {
+      const g = GEM_TYPES[id];
+      return `<button class="gem-choice ${id === selectedGemType ? 'selected' : ''}" data-gem="${id}"><i style="--gem-color:${g.color}"></i><span>${g.nameEs}</span></button>`;
+    }).join('');
+    options.innerHTML = `<div class="gem-choices">${gemButtons}</div>
+      <label class="grade-control">Rango <strong id="grade-value">${selectedGemGrade}</strong>
+        <input id="grade-range" type="range" min="1" max="12" value="${selectedGemGrade}">
+      </label>`;
+    hint.textContent = 'Elegí gema y rango; después tocá una torre vacía para incrustarla.';
+    options.querySelectorAll('[data-gem]').forEach(btn => btn.addEventListener('click', () => {
+      selectedGemType = btn.dataset.gem;
+      options.querySelectorAll('[data-gem]').forEach(b => b.classList.toggle('selected', b === btn));
+    }));
+    const range = document.getElementById('grade-range');
+    range.addEventListener('input', () => {
+      selectedGemGrade = Number(range.value);
+      document.getElementById('grade-value').textContent = selectedGemGrade;
+    });
+  }
+}
+panel.querySelectorAll('[data-category]').forEach(btn => btn.addEventListener('click', () => setBuildCategory(btn.dataset.category)));
+setBuildCategory('wall');
 
 btnWall.classList.add('active');
 
