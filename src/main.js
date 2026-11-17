@@ -682,11 +682,14 @@ canvas.addEventListener('pointerdown', (ev) => {
   }
   if (tile === TILE.TOWER) {
     selectedTowerKey = key;
+    document.getElementById('selected-tower-actions').hidden = false;
     if (selectedInventoryGem) socketGemOnTower(key);
     else setBuildHint('Torre seleccionada. Elegí una gema del inventario para engarzarla.');
     draw();
     return;
   }
+  selectedTowerKey = null;
+  document.getElementById('selected-tower-actions').hidden = true;
   if (buildSelection === 'wall') {
     if (tile !== TILE.PATH) return;
     if (gold < WALL_COST) { setBuildHint('Oro insuficiente para construir un muro.'); return; }
@@ -824,6 +827,9 @@ buildRoot.innerHTML = `
       <button type="button" data-category="gem">Gemas</button>
     </div>
     <div id="build-options"></div>
+    <div id="selected-tower-actions" hidden>
+      <button id="sell-selected-tower" type="button">Vender torre · +18 oro</button>
+    </div>
     <div id="gem-forge" hidden>
       <div class="forge-title">Forja · 25 de oro</div>
       <div id="gem-shop" class="gem-choices"></div>
@@ -839,6 +845,15 @@ const panel = document.getElementById('build-panel');
 const options = document.getElementById('build-options');
 const hint = document.getElementById('build-hint');
 const closeBuild = () => { panel.hidden = true; fab.setAttribute('aria-expanded', 'false'); };
+document.getElementById('sell-selected-tower').addEventListener('click', () => {
+  if (!selectedTowerKey) return;
+  const coords = selectedTowerKey.split(',').map(Number);
+  if (sellTowerAt(coords[0], coords[1])) {
+    selectedTowerKey = null;
+    document.getElementById('selected-tower-actions').hidden = true;
+    draw();
+  }
+});
 fab.addEventListener('click', () => {
   panel.hidden = !panel.hidden;
   fab.setAttribute('aria-expanded', String(!panel.hidden));
