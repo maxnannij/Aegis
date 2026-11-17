@@ -445,15 +445,19 @@ function renderGemInventory() {
     button.title = (type ? type.nameEs : 'Gema') + ' · nivel ' + gem.grade;
     button.style.setProperty('--gem-color', type ? type.color : '#fff');
     button.innerHTML = '<i></i><span>' + gem.grade + '</span>';
-    button.addEventListener('click', ev => {
-      if (ev.shiftKey) selectedInventoryGem2 = selectedInventoryGem2 === gem.id ? null : gem.id;
+    button.addEventListener('click', () => {
+      if (!selectedInventoryGem) selectedInventoryGem = gem.id;
+      else if (selectedInventoryGem === gem.id) {
+        selectedInventoryGem = null;
+        selectedInventoryGem2 = null;
+      } else if (!selectedInventoryGem2) selectedInventoryGem2 = gem.id;
       else {
-        selectedInventoryGem = selectedInventoryGem === gem.id ? null : gem.id;
-        if (!selectedInventoryGem) selectedInventoryGem2 = null;
+        selectedInventoryGem = gem.id;
+        selectedInventoryGem2 = null;
       }
       renderGemInventory();
-      setBuildHint(selectedInventoryGem2 ? 'Segunda gema seleccionada. Fusioná si ambas son del mismo tipo y nivel.' :
-        selectedInventoryGem ? 'Gema seleccionada: tocá una torre vacía para engarzarla. Mayús + toque selecciona otra para fusionar.' :
+      setBuildHint(selectedInventoryGem2 ? 'Dos gemas seleccionadas. Fusioná si son del mismo tipo y nivel.' :
+        selectedInventoryGem ? 'Gema seleccionada: tocá una torre vacía para engarzarla. Elegí otra para preparar una fusión.' :
         'Seleccioná una gema del inventario.');
     });
     inventory.appendChild(button);
