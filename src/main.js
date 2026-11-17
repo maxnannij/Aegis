@@ -683,7 +683,7 @@ let cameraPointer = null;
 canvas.addEventListener('pointerdown', ev => {
   if (!gameStarted) return;
   ev.preventDefault();
-  const canPan = ev.button === 1 || ev.button === 2 || (ev.pointerType === 'touch' && !buildSelection);
+  const canPan = ev.button === 1 || ev.button === 2 || (ev.pointerType === 'touch');
   cameraPointer = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, lastX: ev.clientX, lastY: ev.clientY, pan: canPan, moved: false, button: ev.button };
   if (canPan) canvas.setPointerCapture(ev.pointerId);
 });
@@ -700,7 +700,7 @@ canvas.addEventListener('pointermove', ev => {
 canvas.addEventListener('pointerup', ev => {
   if (!cameraPointer || cameraPointer.id !== ev.pointerId) return;
   const gesture = cameraPointer; cameraPointer = null;
-  if (!gesture.moved && !gesture.pan) handleMapClick({ ...ev, button: gesture.button });
+  if (!gesture.moved && !gesture.pan) handleMapClick({ clientX: ev.clientX, clientY: ev.clientY, button: gesture.button });
   if (canvas.hasPointerCapture(ev.pointerId)) canvas.releasePointerCapture(ev.pointerId);
 });
 canvas.addEventListener('pointercancel', () => { cameraPointer = null; });
