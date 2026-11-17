@@ -1,17 +1,17 @@
 :root {
   color-scheme: dark;
-  --bg: #10130f;
-  --panel: rgba(25, 29, 23, .96);
-  --panel-border: rgba(222, 205, 166, .2);
-  --text: #f1eadb;
-  --muted: #b5ad9c;
-  --accent: #c49a54;
-  --green: #4c9873;
+  --bg: #09080d;
+  --panel: rgba(20, 17, 27, .96);
+  --panel-border: rgba(72, 59, 87, .72);
+  --text: #d9d2e3;
+  --muted: #8d839c;
+  --accent: #c9a86a;
+  --green: #6d9b79;
 }
 * { box-sizing: border-box; }
 html, body, #app { width: 100%; height: 100%; min-height: 100%; margin: 0; overflow: hidden; }
 @supports (height: 100dvh) { html, body, #app { height: 100dvh; min-height: 100dvh; } }
-body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; overscroll-behavior: none; touch-action: manipulation; }
+body { background: var(--bg); color: var(--text); font-family: Georgia, "Times New Roman", serif; overscroll-behavior: none; touch-action: manipulation; }
 #app { position: relative; }
 #map-container { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; background: #141710; }
 #map-canvas { display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
@@ -100,3 +100,19 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 @media (orientation: landscape) and (max-height: 500px) {
   #wave-sidebar { top:8px; max-height:calc(100dvh - 16px); width:112px; }
 }
+
+
+/* Abismo de Ceniza visual language: charcoal stone, violet-black panels and aged gold. */
+#map-container { background:#09080d; }
+#game-status .status { border-color:rgba(201,168,106,.35); background:rgba(20,17,27,.9); color:#d9c18f; }
+#game-status .status.blocked { color:#e88a82; border-color:rgba(196,76,76,.5); }
+#build-fab { border-color:#d7bb83; background:linear-gradient(145deg,#e0c58d,#9c7846); }
+#build-panel, #wave-sidebar { background:rgba(20,17,27,.94); border-color:#342b41; }
+.build-categories button, .build-option { border-color:#40354d; background:#1d1829; }
+.build-categories button.selected, .build-option.selected { border-color:#c9a86a; background:#2d2338; color:#fff0cf; }
+.gem-choice { border-color:#382f43; background:#0e0c14; }
+.gem-choice.selected { border-color:#c9a86a; background:#2d2338; }
+.grade-control { background:#0e0c14; }
+.wave-current-card { background:rgba(201,168,106,.1); border-color:rgba(201,168,106,.28); }
+.wave-number { background:linear-gradient(145deg,#e0c58d,#9c7846); }
+#wave-start { border-color:#c9a86a; background:linear-gradient(145deg,#e0c58d,#9c7846); }
