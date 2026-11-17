@@ -1,12 +1,11 @@
 /**
  * Aegis - Enemy
  *
- * Behaviour:
- * 1. Tries to follow a path from its current position toward the Orb.
- * 2. If a wall is placed on the remaining path → recalculates immediately.
- * 3. If the map becomes fully blocked → switches to ATTACK mode.
- * 4. In ATTACK mode it moves toward the nearest attackable wall and damages it.
- * 5. When a wall is destroyed, pathfinding is re-enabled automatically.
+ * Behaviour (priority order):
+ * 1. If this enemy can still reach the Orb from its CURRENT position → walk toward it.
+ * 2. Only if it is trapped (no path from its position) → switch to ATTACK mode
+ *    and damage the walls that are blocking ITS way.
+ * 3. Never go backwards to attack a wall if a forward path still exists.
  */
 
 export const ENEMY_STATE = {
@@ -52,49 +51,58 @@ export class Enemy {
   update(dt) {
     if (this.state === ENEMY_STATE.DEAD) return;
 
-    // Always re-evaluate if the global path situation changed
-    const fullyBlocked = this.map.isFullyBlocked();
+    // ── Core decision: can THIS enemy reach the orb from here? ──
+    const canReachOrb = this._canReachOrbFromHere();
 
-    if (fullyBlocked) {
+    if (canReachOrb) {
+      // Always prefer advancing
+      if (this.state === ENEMY_STATE.ATTACKING) {
+        this.state = ENEMY_STATE.WALKING;
+        this.targetWall = null;
+        this.path = [];
+        this.pathIndex = 0;
+      }
+      this._updateWalking(dt);
+    } else {
+      // Trapped → attack the walls that block THIS enemy
       if (this.state !== ENEMY_STATE.ATTACKING) {
         this.state = ENEMY_STATE.ATTACKING;
         this.path = [];
         this.targetWall = null;
       }
       this._updateAttack(dt);
-    } else {
-      if (this.state === ENEMY_STATE.ATTACKING) {
-        // Path reopened → go back to walking
-        this.state = ENEMY_STATE.WALKING;
-        this.targetWall = null;
-        this._recalculatePath();
-      }
-      this._updateWalking(dt);
     }
+  }
+
+  /** Returns true if there is a walkable path from current tile to the orb. */
+  _canReachOrbFromHere() {
+    if (!this.map.orb) return false;
+    const start = { x: this.tileX, y: this.tileY };
+    if (!this.map.isWalkable(start.x, start.y)) return false;
+    return this.map.findPath(start, this.map.orb) !== null;
   }
 
   // ── Walking logic ──────────────────────────────
   _updateWalking(dt) {
-    // 1. Validate that the remaining path is still walkable.
-    //    If a wall was placed on any upcoming tile → force recalculation.
+    // Validate remaining path is still walkable
     if (this.path.length > 0 && this.pathIndex < this.path.length) {
       if (!this._isRemainingPathValid()) {
         this._recalculatePath();
       }
     }
 
-    // 2. Need a (new) path?
+    // Need a (new) path?
     if (this.path.length === 0 || this.pathIndex >= this.path.length) {
       this._recalculatePath();
       if (this.path.length === 0) {
-        // No path available (shouldn't happen if not fully blocked)
+        // Should not happen if canReachOrb was true, but safety
         return;
       }
     }
 
     const target = this.path[this.pathIndex];
 
-    // Extra safety: if the immediate target tile is no longer walkable, repath
+    // Extra safety
     if (!this.map.isWalkable(target.x, target.y)) {
       this._recalculatePath();
       return;
@@ -105,19 +113,16 @@ export class Enemy {
     const dist = Math.hypot(dx, dy);
 
     if (dist < 0.08) {
-      // Reached this waypoint
       this.x = target.x;
       this.y = target.y;
       this.pathIndex++;
 
-      // Check if we reached the orb
       if (this.map.orb && this.tileX === this.map.orb.x && this.tileY === this.map.orb.y) {
         this.state = ENEMY_STATE.REACHING_ORB;
       }
       return;
     }
 
-    // Move toward current waypoint
     const step = this.speed * dt;
     if (step >= dist) {
       this.x = target.x;
@@ -128,15 +133,10 @@ export class Enemy {
     }
   }
 
-  /**
-   * Returns true only if every remaining tile in the current path is still walkable.
-   */
   _isRemainingPathValid() {
     for (let i = this.pathIndex; i < this.path.length; i++) {
       const p = this.path[i];
-      if (!this.map.isWalkable(p.x, p.y)) {
-        return false;
-      }
+      if (!this.map.isWalkable(p.x, p.y)) return false;
     }
     return true;
   }
@@ -144,9 +144,7 @@ export class Enemy {
   _recalculatePath() {
     const start = { x: this.tileX, y: this.tileY };
 
-    // If we are currently standing on a non-walkable tile (rare), try to snap to nearest walkable
     if (!this.map.isWalkable(start.x, start.y)) {
-      // simple fallback: stay and wait (or could search neighbors)
       this.path = [];
       this.pathIndex = 0;
       return;
@@ -156,7 +154,6 @@ export class Enemy {
     if (path && path.length > 0) {
       this.path = path;
       this.pathIndex = 0;
-      // Skip the starting node if we are already on it
       if (path[0].x === this.tileX && path[0].y === this.tileY) {
         this.pathIndex = 1;
       }
@@ -166,12 +163,12 @@ export class Enemy {
     }
   }
 
-  // ── Attack logic (when fully blocked) ──────────
+  // ── Attack logic (only when THIS enemy is trapped) ──────────
   _updateAttack(dt) {
-    // Acquire target wall if needed
-    if (!this.targetWall || this.map.get(this.targetWall.x, this.targetWall.y) !== 2 /* WALL */) {
-      this.targetWall = this.map.getNearestAttackableWall(this.tileX, this.tileY);
-      if (!this.targetWall) return; // no walls left to attack?
+    // Find walls that block THIS enemy (critical from its perspective)
+    if (!this.targetWall || this.map.get(this.targetWall.x, this.targetWall.y) !== 2) {
+      this.targetWall = this._getBestWallToAttack();
+      if (!this.targetWall) return;
     }
 
     const tx = this.targetWall.x;
@@ -180,7 +177,7 @@ export class Enemy {
     const dy = ty - this.y;
     const dist = Math.hypot(dx, dy);
 
-    // Move next to the wall (adjacent tile)
+    // Move next to the wall
     if (dist > 1.15) {
       const step = this.speed * dt;
       this.x += (dx / dist) * Math.min(step, dist - 1.0);
@@ -196,9 +193,43 @@ export class Enemy {
 
       if (destroyed) {
         this.targetWall = null;
-        // Path may now be open – next update will handle it
+        // Next frame will check if path opened
       }
     }
+  }
+
+  /**
+   * Prefer walls that are critical blockers for THIS enemy
+   * (removing them opens a path from the enemy's current position to the orb).
+   * Fallback to global critical walls if needed.
+   */
+  _getBestWallToAttack() {
+    // First try walls that would open a path FROM THIS ENEMY
+    const localCritical = this.map.getCriticalWallsFrom(this.tileX, this.tileY);
+    if (localCritical.length > 0) {
+      return this._pickClosest(localCritical);
+    }
+
+    // Fallback: global critical walls (from spawns)
+    const global = this.map.getAttackableWalls();
+    if (global.length > 0) {
+      return this._pickClosest(global);
+    }
+
+    return null;
+  }
+
+  _pickClosest(walls) {
+    let best = null;
+    let bestDist = Infinity;
+    for (const w of walls) {
+      const d = Math.abs(w.x - this.tileX) + Math.abs(w.y - this.tileY);
+      if (d < bestDist) {
+        bestDist = d;
+        best = w;
+      }
+    }
+    return best;
   }
 
   takeDamage(amount) {
