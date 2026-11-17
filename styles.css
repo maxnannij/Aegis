@@ -158,3 +158,8 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   #gold-hud { min-height:34px; padding:6px 9px; gap:5px; }
   #gold-hud strong { font-size:15px; }
 }
+
+#selected-tower-actions { margin:8px 0; }
+#selected-tower-actions[hidden] { display:none; }
+#sell-selected-tower { width:100%; min-height:38px; border:1px solid #8a6840; border-radius:9px; background:#34251f; color:#f0d0a0; font:700 12px Georgia,serif; }
+#sell-selected-tower:active { background:#503329; }
