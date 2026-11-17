@@ -42,7 +42,8 @@ function renderGemCard(typeId) {
   return card;
 }
 
-GEM_TYPE_LIST.forEach(id => grid.appendChild(renderGemCard(id)));
+// La galería de fichas es opcional: la interfaz móvil usa el selector del menú flotante.
+if (grid) GEM_TYPE_LIST.forEach(id => grid.appendChild(renderGemCard(id)));
 
 // ─────────────────────────────────────────────
 // Map demo (portrait 15×20)
