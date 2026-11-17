@@ -121,6 +121,38 @@ function drawStoneFloor(px, py, x, y) {
   }
 }
 
+// Camino de los enemigos: losas más claras y gastadas que el suelo edificable.
+function drawPathTile(px, py, x, y) {
+  const h = tileHash(x + 41, y + 17);
+  const base = 29 + Math.floor(h * 10);
+  ctx.fillStyle = `rgb(${base},${base - 2},${base + 3})`;
+  ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+  // Borde interior de losas y juntas oscuras.
+  ctx.strokeStyle = 'rgba(0,0,0,.72)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(px + 1, py + 1, TILE_SIZE - 2, TILE_SIZE - 2);
+  ctx.strokeStyle = 'rgba(150,133,111,.16)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(px + 4, py + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+
+  // Desgaste irregular, pequeñas fisuras y marcas de tránsito.
+  ctx.strokeStyle = 'rgba(5,4,7,.48)';
+  ctx.beginPath();
+  if (h > .25) {
+    ctx.moveTo(px + 5 + h * 8, py + 8);
+    ctx.lineTo(px + 12 + h * 5, py + 14);
+    ctx.lineTo(px + 9 + h * 9, py + 21);
+  } else {
+    ctx.moveTo(px + 19, py + 7);
+    ctx.lineTo(px + 15, py + 13);
+    ctx.lineTo(px + 22, py + 25);
+  }
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(190,166,132,.08)';
+  ctx.fillRect(px + 6, py + 6, TILE_SIZE - 12, 2);
+}
+
 function drawWall(x, y) {
   const px = x * TILE_SIZE, py = y * TILE_SIZE;
   const hp = map.getWallHp(x, y);
@@ -258,7 +290,7 @@ function draw(now = performance.now()) {
       const px = x * TILE_SIZE;
       const py = y * TILE_SIZE;
 
-      drawStoneFloor(px, py, x, y);
+      if (t === TILE.PATH || t === TILE.SPAWN || t === TILE.ORB || t === TILE.TRAP) drawPathTile(px, py, x, y);\n      else drawStoneFloor(px, py, x, y);
 
       if (t === TILE.SPAWN) {
         ctx.fillStyle = 'rgba(109, 206, 138, 0.35)';
@@ -298,7 +330,7 @@ function draw(now = performance.now()) {
   }
 
   if (enemies.length > 0 && enemies[0].path?.length) {
-    ctx.strokeStyle = 'rgba(109, 206, 138, 0.4)';
+    ctx.strokeStyle = 'rgba(190, 157, 105, 0.22)';
     ctx.lineWidth = 2;
     ctx.beginPath();
     const p0 = enemies[0].path[0];
@@ -322,16 +354,15 @@ function draw(now = performance.now()) {
     const lift = bounce * 3.5;
 
     if (gnollImageReady) {
-      const drawWidth = TILE_SIZE * 0.9 * scale;
+      // El archivo original mira hacia la derecha; se rota según el rumbo del enemigo.
+      const drawWidth = TILE_SIZE * 0.9 * 1.2 * scale;
       const drawHeight = drawWidth * (gnollImage.height / gnollImage.width);
       const feetY = ey + TILE_SIZE * 0.28 - lift;
-      ctx.drawImage(
-        gnollImage,
-        ex - drawWidth / 2,
-        feetY - drawHeight,
-        drawWidth,
-        drawHeight
-      );
+      ctx.save();
+      ctx.translate(ex, feetY - drawHeight / 2);
+      ctx.rotate(e.facingAngle || 0);
+      ctx.drawImage(gnollImage, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+      ctx.restore();
     } else {
       // Fallback mientras se carga la imagen o si todavía no está subida.
       ctx.beginPath();
