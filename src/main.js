@@ -89,6 +89,7 @@ let waveResolved = 0;
 // Combate visual de torres: proyectiles, estelas e impactos.
 const projectiles = [];
 const impactParticles = [];
+const lightningBolts = [];
 
 
 // Gnoll sprite (subí el archivo en assets/enemies/Gnoll.png)
@@ -405,6 +406,8 @@ function draw(now = performance.now()) {
     ctx.fill();
     ctx.restore();
   }
+  // Descargas visuales de la gema Tormenta.
+  for(const bolt of lightningBolts){ctx.save();ctx.globalAlpha=Math.max(0,bolt.life/bolt.maxLife);ctx.strokeStyle=bolt.color;ctx.shadowColor='#ffe94a';ctx.shadowBlur=12;ctx.lineWidth=2.5;ctx.beginPath();bolt.points.forEach((point,index)=>{if(index===0)ctx.moveTo(point.x,point.y);else{const prev=bolt.points[index-1],mx=(prev.x+point.x)/2+(Math.random()-.5)*14,my=(prev.y+point.y)/2+(Math.random()-.5)*14;ctx.lineTo(mx,my);ctx.lineTo(point.x,point.y);}});ctx.stroke();ctx.restore();}
   for (const p of impactParticles) {
     ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
     ctx.fillStyle = p.color;
@@ -428,7 +431,7 @@ function updateGoldHud() {
 function canFuseSelectedGems() {
   const a = playerGems.find(g => g.id === selectedInventoryGem);
   const b = playerGems.find(g => g.id === selectedInventoryGem2);
-  return !!(a && b && a.id !== b.id && a.typeId === b.typeId && a.grade === b.grade && a.grade < 12);
+  return !!(a && b && a.id !== b.id && a.typeId === b.typeId && a.grade === b.grade && a.grade < 8);
 }
 function renderGemInventory() {
   const inventory = document.getElementById('gem-inventory');
@@ -483,7 +486,7 @@ function forgeGem(typeId) {
   updateGoldHud();
 }
 function fuseSelectedGems() {
-  if (!canFuseSelectedGems()) { setBuildHint('Seleccioná dos gemas del mismo tipo y nivel (Mayús + toque en la segunda).'); return; }
+  if (!canFuseSelectedGems()) { setBuildHint('Seleccioná dos gemas del mismo tipo y nivel.'); return; }
   const a = playerGems.find(g => g.id === selectedInventoryGem);
   const b = playerGems.find(g => g.id === selectedInventoryGem2);
   const high = createGem(a.typeId, a.grade + 1);
@@ -532,87 +535,47 @@ function rewardEnemy(enemy) {
   updateGoldHud();
 }
 
-function updateCombat(dt) {
-  // Cada torre engarzada busca al enemigo más adelantado dentro de su alcance.
-  for (const [key, gem] of placedTowers) {
-    if (!gem) continue;
-    const [tx, ty] = key.split(',').map(Number);
-    const towerX = tx * TILE_SIZE + TILE_SIZE / 2;
-    const towerY = ty * TILE_SIZE + TILE_SIZE / 2;
-    const stats = getGemStats(gem);
-    const cooldown = Math.max(0.18, 1 / stats.fireRate);
-    const remaining = Math.max(0, (towerCooldowns.get(key) || 0) - dt);
-    towerCooldowns.set(key, remaining);
-    if (remaining > 0) continue;
-
-    let target = null;
-    let bestProgress = -Infinity;
-    for (const enemy of enemies) {
-      if (enemy.state === ENEMY_STATE.DEAD || enemy.state === ENEMY_STATE.REACHING_ORB) continue;
-      const ex = enemy.x * TILE_SIZE + TILE_SIZE / 2;
-      const ey = enemy.y * TILE_SIZE + TILE_SIZE / 2;
-      if (Math.hypot(ex - towerX, ey - towerY) > stats.range) continue;
-      const progress = enemy.path?.length ? enemy.pathIndex / Math.max(1, enemy.path.length) : 0;
-      if (progress >= bestProgress) { bestProgress = progress; target = enemy; }
-    }
-    if (!target) continue;
-    towerCooldowns.set(key, cooldown);
-    projectiles.push({
-      x: towerX, y: towerY - 5, target, gemType: gem.typeId,
-      color: GEM_TYPES[gem.typeId]?.color || '#fff',
-      damage: (stats.damageMin + stats.damageMax) / 2,
-      speed: 250, trail: [],
-    });
-  }
-
-  for (let i = projectiles.length - 1; i >= 0; i--) {
-    const p = projectiles[i];
-    const target = p.target;
-    if (target.state === ENEMY_STATE.DEAD || target.state === ENEMY_STATE.REACHING_ORB) {
-      projectiles.splice(i, 1);
-      continue;
-    }
-    const tx = target.x * TILE_SIZE + TILE_SIZE / 2;
-    const ty = target.y * TILE_SIZE + TILE_SIZE / 2;
-    const dx = tx - p.x, dy = ty - p.y;
-    const distance = Math.hypot(dx, dy);
-    p.trail.push({ x: p.x, y: p.y });
-    if (p.trail.length > 6) p.trail.shift();
-    const step = p.speed * dt;
-    if (distance <= step + 3) {
-      target.takeDamage(p.damage);
-      const color = p.color;
-      for (let n = 0; n < 7; n++) {
-        const angle = Math.random() * Math.PI * 2;
-        const velocity = 18 + Math.random() * 55;
-        impactParticles.push({
-          x: tx, y: ty, vx: Math.cos(angle) * velocity,
-          vy: Math.sin(angle) * velocity, life: .22 + Math.random() * .2,
-          maxLife: .42, radius: 1.2 + Math.random() * 1.8, color,
-        });
-      }
-      // Efectos distintivos de impacto por familia de gema.
-      if (p.gemType === 'blue' || p.gemType === 'cyan') {
-        impactParticles.push({ x: tx, y: ty, vx: 0, vy: 0, life: .28, maxLife: .28, radius: 5, color: '#b7efff' });
-      }
-      projectiles.splice(i, 1);
-    } else {
-      p.x += dx / distance * step;
-      p.y += dy / distance * step;
-    }
-  }
-
-  for (let i = impactParticles.length - 1; i >= 0; i--) {
-    const p = impactParticles[i];
-    p.life -= dt;
-    p.x += (p.vx || 0) * dt;
-    p.y += (p.vy || 0) * dt;
-    p.vx = (p.vx || 0) * .92;
-    p.vy = (p.vy || 0) * .92;
-    if (p.life <= 0) impactParticles.splice(i, 1);
+function applyGemHit(p) {
+  const target=p.target, stats=p.stats, damage=p.damage, type=p.gemType;
+  const x=target.x*TILE_SIZE+TILE_SIZE/2, y=target.y*TILE_SIZE+TILE_SIZE/2;
+  const hit=(e,n)=>{if(e&&e.state!==ENEMY_STATE.DEAD&&e.state!==ENEMY_STATE.REACHING_ORB)e.takeDamage(n);};
+  const burst=(px,py,color,count)=>{for(let n=0;n<count;n++){const a=Math.random()*Math.PI*2,s=18+Math.random()*80;impactParticles.push({x:px,y:py,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:.22+Math.random()*.2,maxLife:.42,radius:1.2+Math.random()*1.8,color});}};
+  switch(type){
+    case 'fuego':
+      for(const e of enemies){if(e===target||e.state===ENEMY_STATE.DEAD||e.state===ENEMY_STATE.REACHING_ORB)continue;const ex=e.x*TILE_SIZE+TILE_SIZE/2,ey=e.y*TILE_SIZE+TILE_SIZE/2;if(Math.hypot(ex-x,ey-y)<=stats.splash*TILE_SIZE)hit(e,damage*.6);}
+      hit(target,damage);target._burn={time:3,dps:damage*.3};burst(x,y,'#ff8a3a',14);break;
+    case 'hielo':
+      hit(target,damage);target._slow={time:2,factor:1-stats.slow};burst(x,y,'#9fe6ff',5);impactParticles.push({x,y,vx:0,vy:0,life:.3,maxLife:.3,radius:7,color:'#b8efff'});break;
+    case 'veneno':
+      hit(target,damage);target._poison={time:4,dps:damage*1.2};burst(x,y,'#7dff4a',5);break;
+    case 'rayo': {
+      hit(target,damage);const points=[{x,y}],struck=new Set([target]);let current=target;
+      for(let n=0;n<stats.chain;n++){let next=null,nearest=2.5*TILE_SIZE;const cx=current.x*TILE_SIZE+TILE_SIZE/2,cy=current.y*TILE_SIZE+TILE_SIZE/2;for(const e of enemies){if(struck.has(e)||e.state===ENEMY_STATE.DEAD||e.state===ENEMY_STATE.REACHING_ORB)continue;const ex=e.x*TILE_SIZE+TILE_SIZE/2,ey=e.y*TILE_SIZE+TILE_SIZE/2,d=Math.hypot(ex-cx,ey-cy);if(d<nearest){nearest=d;next=e;}}if(!next)break;struck.add(next);hit(next,damage*.8);points.push({x:next.x*TILE_SIZE+TILE_SIZE/2,y:next.y*TILE_SIZE+TILE_SIZE/2});current=next;}
+      lightningBolts.push({points,life:.18,maxLife:.18,color:'#fff6a0'});break;}
+    case 'sombra':
+      hit(target,damage+Math.min(target.maxHp*.04,damage*10));burst(x,y,'#b36bff',8);impactParticles.push({x,y,vx:0,vy:0,life:.32,maxLife:.32,radius:9,color:'#b36bff'});break;
   }
 }
 
+function updateCombat(dt) {
+  // Efectos persistentes: quemadura, veneno y ralentización.
+  for(const e of enemies){
+    if(e._baseSpeed==null)e._baseSpeed=e.speed;let factor=1;
+    if(e._slow&&e._slow.time>0){e._slow.time-=dt;factor=e._slow.factor;if(e._slow.time<=0)e._slow=null;}
+    e.speed=e._baseSpeed*factor;
+    for(const key of ['_burn','_poison']){const fx=e[key];if(!fx||fx.time<=0||e.state===ENEMY_STATE.DEAD)continue;const elapsed=Math.min(dt,fx.time);e.takeDamage(fx.dps*elapsed);fx.time-=dt;if(fx.time<=0)e[key]=null;}
+  }
+  for(const [key,gem] of placedTowers){
+    if(!gem)continue;const [tx,ty]=key.split(',').map(Number),towerX=tx*TILE_SIZE+TILE_SIZE/2,towerY=ty*TILE_SIZE+TILE_SIZE/2;
+    const stats=getGemStats(gem),cooldown=Math.max(.18,1/stats.fireRate),remaining=Math.max(0,(towerCooldowns.get(key)||0)-dt);towerCooldowns.set(key,remaining);if(remaining>0)continue;
+    let target=null,bestProgress=-Infinity;
+    for(const e of enemies){if(e.state===ENEMY_STATE.DEAD||e.state===ENEMY_STATE.REACHING_ORB)continue;const ex=e.x*TILE_SIZE+TILE_SIZE/2,ey=e.y*TILE_SIZE+TILE_SIZE/2;if(Math.hypot(ex-towerX,ey-towerY)>stats.range)continue;const progress=e.path?.length?e.pathIndex/Math.max(1,e.path.length):0;if(progress>=bestProgress){bestProgress=progress;target=e;}}
+    if(!target)continue;towerCooldowns.set(key,cooldown);projectiles.push({x:towerX,y:towerY-5,target,gemType:gem.typeId,color:GEM_TYPES[gem.typeId].color,damage:(stats.damageMin+stats.damageMax)/2,stats,speed:430,trail:[]});
+  }
+  for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i],e=p.target;if(e.state===ENEMY_STATE.DEAD||e.state===ENEMY_STATE.REACHING_ORB){projectiles.splice(i,1);continue;}const tx=e.x*TILE_SIZE+TILE_SIZE/2,ty=e.y*TILE_SIZE+TILE_SIZE/2,dx=tx-p.x,dy=ty-p.y,d=Math.hypot(dx,dy);p.trail.push({x:p.x,y:p.y});if(p.trail.length>6)p.trail.shift();const step=p.speed*dt;if(d<=step+4){applyGemHit(p);const color=p.color;for(let n=0;n<7;n++){const a=Math.random()*Math.PI*2,s=18+Math.random()*55;impactParticles.push({x:tx,y:ty,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:.22+Math.random()*.2,maxLife:.42,radius:1.2+Math.random()*1.8,color});}projectiles.splice(i,1);}else{p.x+=dx/d*step;p.y+=dy/d*step;}}
+  for(let i=impactParticles.length-1;i>=0;i--){const p=impactParticles[i];p.life-=dt;p.x+=(p.vx||0)*dt;p.y+=(p.vy||0)*dt;p.vx=(p.vx||0)*.92;p.vy=(p.vy||0)*.92;if(p.life<=0)impactParticles.splice(i,1);}
+  for(let i=lightningBolts.length-1;i>=0;i--){lightningBolts[i].life-=dt;if(lightningBolts[i].life<=0)lightningBolts.splice(i,1);}
+}
 function update(dt) {
   if (waveState === 'running') {
     spawnTimer -= dt;
