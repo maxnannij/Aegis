@@ -57,7 +57,7 @@ export const DECOR_TYPES = {
   rock: {
     id: 'rock',
     name: 'Roca',
-    image: null // Sprite todavía no disponible; se dibuja con Canvas,
+    image: null, // Sprite todavía no disponible; se dibuja con Canvas
     radius: 0,
     minPathClearance: 0,
     drawSize: 1.0,
