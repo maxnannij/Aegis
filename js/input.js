@@ -82,7 +82,7 @@ $('again').onclick=newGame;
 window.addEventListener('keydown',e=>{
   if(e.key==='1') setTool('wall');
   else if(e.key==='2') setTool('tower');
-  else if(e.key==='3'||e.key==='Escape'){setTool('cursor');S.sel=[];refreshUI();}
+  else if(e.key==='3'){setTool('cursor');S.sel=[];refreshUI();}
   else if(e.key===' '){e.preventDefault();startWave();}
   else if(e.key==='p'||e.key==='P') S.paused=!S.paused;
   else if(e.key==='f'||e.key==='F') fuse();
