@@ -6,6 +6,7 @@ function setTool(t){
   $('tCursor').classList.toggle('on',t==='cursor');
   $('tWall').classList.toggle('on',t==='wall');
   $('tTower').classList.toggle('on',t==='tower');
+  $('tSell').classList.toggle('on',t==='sell');
 }
 function towerAt(x,y){return S.towers.find(t=>t.cx===x&&t.cy===y);}
 function placeWall(x,y){
@@ -27,6 +28,8 @@ function removeAt(x,y){
 }
 function leftClick(x,y){
   if(x<0||y<0||x>=COLS||y>=ROWS||S.over) return;
+  /* El modo vender reemplaza el clic derecho, que no existe en pantallas táctiles. */
+  if(S.tool==='sell'){removeAt(x,y);return;}
   if(S.grid[y][x]===2){
     const t=towerAt(x,y);
     if(S.sel.length===1) socket(t); else {S.selTower=t; refreshUI();}
