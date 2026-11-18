@@ -117,7 +117,7 @@ function updateHud(){
     const el=$(id);if(el)el.textContent=text;
   }
   for(const id of ['waveProgressFill','mWaveFill']){const el=$(id);if(el)el.style.width=pct+'%';}
-  const remainingText=S.waveActive?(remaining+' enemigos restantes'):'Oleada terminada';
+  const remainingText=S.waveActive?(remaining+' enemigos restantes'):(S.wave>0?'Oleada terminada':'Sin enemigos');
   $('waveRemaining').textContent=remainingText;
   $('waveIntermission').textContent=!S.waveActive&&S.wave>0&&S.autoT>0?'Recompensa por adelantar: +'+Math.ceil(S.autoT*2)+' maná':'';
   $('mWaveStart').textContent=S.waveActive?'En curso':'Invocar';
