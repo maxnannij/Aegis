@@ -25,6 +25,7 @@ window.addEventListener('pointerup',()=>{painting=false;});
 $('tCursor').onclick=()=>setTool('cursor');
 $('tWall').onclick=()=>setTool('wall');
 $('tTower').onclick=()=>setTool('tower');
+$('tSell').onclick=()=>setTool('sell');
 $('fuse').onclick=fuse;
 $('bWave').onclick=startWave;
 $('bSpeed').onclick=()=>{S.speed=S.speed%3+1;$('bSpeed').textContent='x'+S.speed;};
