@@ -157,3 +157,21 @@ button:disabled{opacity:.4;cursor:not-allowed}
   #mobileFuse{width:100%;min-height:42px}
   #mobileTowerActions{padding-bottom:8px}
 }
+
+
+/* Modo inmersivo: el mapa ocupa toda la pantalla y los controles quedan flotantes. */
+#immersiveHud{display:none}
+@media(max-width:900px) and (pointer:coarse){
+  #immersiveToggle{border-color:var(--gold);color:#f2d59b}
+  body.immersive-mode{padding:0;overflow:hidden}
+  body.immersive-mode #app{position:fixed;inset:0;width:100vw;height:100dvh;max-width:none;gap:0}
+  body.immersive-mode #mobileHud,body.immersive-mode #mobileControls{display:none!important}
+  body.immersive-mode #stage{position:fixed;inset:0;width:100vw;height:100dvh;max-width:none;max-height:none;z-index:1}
+  body.immersive-mode #stage canvas{width:auto;height:auto;max-width:100vw;max-height:100dvh;border:0;border-radius:0}
+  body.immersive-mode #immersiveHud{display:flex;position:fixed;z-index:30;left:8px;right:8px;top:calc(env(safe-area-inset-top) + 8px);align-items:center;gap:6px;flex-wrap:wrap;pointer-events:none}
+  body.immersive-mode #immersiveHud>*{pointer-events:auto}
+  #immersiveHud .immersive-stat{background:rgba(14,12,20,.9);border:1px solid var(--line);border-radius:5px;padding:7px 8px;font-size:12px;color:var(--dim)}
+  #immersiveHud .immersive-stat b{color:var(--txt);font-size:13px;font-weight:normal;margin-left:3px}
+  #immersiveHud button{min-height:38px;padding:6px 9px;background:rgba(29,24,41,.94);font-size:12px}
+  body.immersive-mode #rotateNotice{display:none!important}
+}
