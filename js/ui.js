@@ -42,11 +42,19 @@ function refreshUI(){
     if(t.gem){
       const st=gemStats(t.gem), G=GEMS[t.gem.type];
       h+='<b style="color:'+G.color+'">'+G.name+' nv.'+t.gem.lvl+'</b><br>Daño '+st.dmg.toFixed(0)+' · '+st.rate.toFixed(2)+'/s · Alcance '+st.range.toFixed(1)+'<br><span style="color:var(--dim)">'+effectText(t.gem)+'</span>';
-    } else h+='<span style="color:var(--dim)">Torre vacía. Elegí una gema del inventario y hacé clic en la torre.</span>';
-    h+='<div class="row"><button id="bUn">Retirar gema</button><button id="bSell">Vender</button></div>';
+      const cost=GEM_UPGRADE_BASE_COST*t.gem.lvl;
+      if(t.gem.lvl<MAXLVL){
+        h+='<div class="row"><button id="bUpgrade">Mejorar gema · '+cost+' maná</button><button id="bUn">Retirar gema</button><button id="bSell">Vender</button></div>';
+      } else {
+        h+='<div class="row"><button id="bUpgrade" disabled>Nivel máximo</button><button id="bUn">Retirar gema</button><button id="bSell">Vender</button></div>';
+      }
+    } else {
+      h+='<span style="color:var(--dim)">Torre vacía. Elegí una gema del inventario y hacé clic en la torre.</span>';
+      h+='<div class="row"><button id="bSell">Vender</button></div>';
+    }
     info.innerHTML=h;
     if(t.gem&&t.gem.lvl<MAXLVL) $('bUpgrade').onclick=()=>upgradeSocketedGem(t);
-    $('bUn').onclick=()=>unsocket(t);
+    if(t.gem) $('bUn').onclick=()=>unsocket(t);
     $('bSell').onclick=()=>sellTower(t);
   }
 }
