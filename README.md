@@ -18,6 +18,12 @@ Juego de defensa de torres en HTML, CSS y JavaScript vanilla.
 - `js/main.js`: bucle principal e inicio de partida.
 - `assets/gnoll.png`: sprite del gnoll extraído del HTML original.
 
+## Interfaz móvil y oleadas
+
+- En celulares, el juego usa una interfaz propia en orientación horizontal; en vertical muestra una indicación para girar el dispositivo.
+- Tocá una casilla libre para construir muros o torres; tocá una torre para abrir sus gemas y mejoras.
+- El panel de oleadas muestra enemigos derrotados y restantes. Entre oleadas podés adelantar la siguiente y recibir maná adicional según el tiempo de espera que quede, o dejar que avance automáticamente.
+
 ## Ejecución
 
 Abrí `index.html` desde un servidor estático (por ejemplo, GitHub Pages). No requiere dependencias ni proceso de compilación.

@@ -4,7 +4,7 @@
 function newGame(){
   S={mana:120,lives:20,wave:0,grid:newGrid(),towers:[],enemies:[],proj:[],parts:[],bolts:[],
      inv:[],sel:[],queue:[],spawnT:0,waveActive:false,over:false,speed:1,paused:false,tool:'cursor',
-     auto:$('auto').checked,autoT:0,nextId:1,time:0,kills:0,selTower:null,hv:null,dist:null,msgT:0};
+     auto:$('auto').checked,autoT:0,waveTotal:0,waveSpawned:0,waveDefeated:0,waveLeaked:0,nextId:1,time:0,kills:0,selTower:null,hv:null,dist:null,msgT:0};
   S.dist=bfs(S.grid);
   $('over').style.display='none';
   setTool('cursor');

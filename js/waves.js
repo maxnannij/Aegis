@@ -14,11 +14,20 @@ function buildWave(w){
   if(w%10===0) arr.splice(Math.floor(n/2),0,{type:'jefe',wave:w,gap:1.6});
   return arr;
 }
-function startWave(){
-  if(S.over) return;
+function startWave(advance=false){
+  if(S.over||S.waveActive) return;
+  if(advance&&S.wave>0){
+    const bonus=Math.max(0,Math.ceil(S.autoT*2));
+    if(bonus>0){S.mana+=bonus;say('Oleada adelantada: +'+bonus+' de maná.');}
+  }
   S.wave++;
-  S.queue.push(...buildWave(S.wave));
+  const next=buildWave(S.wave);
+  S.waveTotal=next.length; S.waveSpawned=0; S.waveDefeated=0; S.waveLeaked=0;
+  S.queue.push(...next);
   S.waveActive=true; S.autoT=0;
+}
+function advanceWave(){
+  if(!S.waveActive&&!S.over&&S.wave>0) startWave(true);
 }
 function spawnEnemy(type,w){
   const t=ETYPES[type], hp=30*Math.pow(1.13,w-1)*t.hp;

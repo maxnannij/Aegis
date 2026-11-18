@@ -8,10 +8,30 @@
 </head>
 <body>
 <div id="app">
+  <div id="rotateNotice" aria-live="polite"><div class="rotate-icon">↻</div><h2>Girás el celular para jugar</h2><p>Abismo de Ceniza se juega en horizontal.</p></div>
+  <header id="mobileHud">
+    <div class="mobile-brand">ABISMO DE CENIZA</div>
+    <div class="mobile-stats"><span>Maná <b id="mMana">120</b></span><span>Vida <b id="mLives">20</b></span><span>Oleada <b id="mWave">0</b></span></div>
+    <div class="mobile-progress"><div class="progress-line"><span id="mWaveLabel">Preparado</span><b id="mWaveCount">0 / 0</b></div><div class="progress-track"><i id="mWaveFill"></i></div></div>
+  </header>
   <div id="stage">
     <canvas id="c"></canvas>
     <div id="over"><h2>Has caído</h2><p id="overTxt"></p><button id="again">Volver a intentarlo</button></div>
   </div>
+  <div id="mobileControls">
+    <button id="mBuild">Gemas</button><button id="mWaveStart">Invocar</button><button id="mAdvance">Adelantar</button><button id="mSpeed">x1</button><button id="mPause">Pausar</button>
+  </div>
+  <div id="cellMenu" role="dialog" aria-label="Acciones de casilla"></div>
+  <div id="drawerShade"></div>
+  <aside id="towerDrawer" aria-label="Panel de torre">
+    <div class="drawer-head"><b>Gemas y torre</b><button id="drawerClose" aria-label="Cerrar">✕</button></div>
+    <div id="mobileTowerInfo"></div>
+    <p class="lbl">Inventario · Tocá para engarzar</p>
+    <div id="mobileGemList"></div>
+    <p class="lbl">Forjar gema · 25 maná</p><div id="mobileGemShop"></div>
+    <button id="mobileFuse">Fusionar 2 gemas iguales</button>
+    <div id="mobileTowerActions"></div>
+  </aside>
   <div id="panel">
     <div class="box">
       <h1>Abismo de Ceniza</h1>
@@ -42,6 +62,13 @@
     <div class="box">
       <p class="lbl">Torre</p>
       <div id="info"></div>
+    </div>
+    <div class="box wave-progress-box">
+      <p class="lbl">Progreso de oleadas</p>
+      <div class="wave-progress-line"><b id="waveProgressLabel">Preparado</b><span id="waveProgressCount">0 / 0</span></div>
+      <div class="progress-track"><i id="waveProgressFill"></i></div>
+      <div class="wave-progress-meta"><span id="waveRemaining">Sin enemigos</span><span id="waveIntermission"></span></div>
+      <div class="row wave-actions"><button id="bAdvance" disabled>Adelantar · +0 maná</button></div>
     </div>
     <div class="box">
       <div class="row">
