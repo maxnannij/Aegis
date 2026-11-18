@@ -88,3 +88,37 @@ window.addEventListener('keydown',e=>{
   else if(e.key==='f'||e.key==='F') fuse();
   else if(e.key==='Escape'){closeCellMenu();closeTowerDrawer();}
 });
+
+
+/* ---------- modo inmersivo móvil ---------- */
+function setImmersiveMode(enabled){
+  document.body.classList.toggle('immersive-mode',enabled);
+  $('immersiveToggle').setAttribute('aria-pressed',String(enabled));
+  $('immersiveToggle').textContent=enabled?'Volver':'⛶ Expandir';
+  if(enabled && document.documentElement.requestFullscreen){
+    const request=document.documentElement.requestFullscreen();
+    if(request&&request.catch) request.catch(()=>{}); // El modo CSS sigue funcionando si el navegador no permite fullscreen.
+  }else if(!enabled && document.fullscreenElement && document.exitFullscreen){
+    const exit=document.exitFullscreen();
+    if(exit&&exit.catch) exit.catch(()=>{});
+  }
+  window.dispatchEvent(new Event('resize'));
+}
+$('immersiveToggle').onclick=()=>setImmersiveMode(!document.body.classList.contains('immersive-mode'));
+$('imExit').onclick=()=>setImmersiveMode(false);
+$('imWaveStart').onclick=startWave;
+$('imSpeed').onclick=()=>{
+  S.speed=S.speed%3+1;
+  $('mSpeed').textContent='x'+S.speed;
+  $('imSpeed').textContent='x'+S.speed;
+};
+$('imPause').onclick=()=>{
+  S.paused=!S.paused;
+  $('mPause').textContent=S.paused?'Continuar':'Pausar';
+  $('imPause').textContent=S.paused?'Continuar':'Pausar';
+};
+document.addEventListener('fullscreenchange',()=>{
+  if(!document.fullscreenElement && document.body.classList.contains('immersive-mode')){
+    // No quitar el modo CSS: algunos navegadores móviles no implementan fullscreen para documentos.
+  }
+});
