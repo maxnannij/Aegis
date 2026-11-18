@@ -5,7 +5,7 @@ function damage(e,a){
   if(e.dead||e.gone) return;
   e.hp-=a; e.flash=0.08;
   if(e.hp<=0){
-    e.dead=true; S.mana+=e.reward; S.kills++;
+    e.dead=true; S.mana+=e.reward; S.kills++; S.waveDefeated++;
     burst(e.x,e.y,e.color,e.type==='jefe'?30:10);
   }
 }
@@ -73,7 +73,7 @@ function applyHit(p){
   }
 }
 function leak(e){
-  e.gone=true; S.lives--;
+  e.gone=true; S.lives--; S.waveLeaked++;
   burst(e.x,e.y,'#ff3050',14);
   if(S.lives<=0) gameOver();
 }
@@ -126,7 +126,7 @@ function update(dt){
   if(S.msgT>0){S.msgT-=dt; if(S.msgT<=0) $('msg').textContent='';}
   if(S.queue.length){
     S.spawnT-=dt;
-    if(S.spawnT<=0){const q=S.queue.shift(); spawnEnemy(q.type,q.wave); S.spawnT=q.gap;}
+    if(S.spawnT<=0){const q=S.queue.shift(); spawnEnemy(q.type,q.wave); S.waveSpawned++; S.spawnT=q.gap;}
   }
   for(const e of S.enemies){ if(!e.dead&&!e.gone) stepEnemy(e,dt); }
   for(const t of S.towers) fireTower(t,dt);
@@ -147,7 +147,8 @@ function update(dt){
   if(S.waveActive&&!S.queue.length&&!S.enemies.length&&!S.over){
     S.waveActive=false; S.mana+=10+S.wave*2; S.autoT=4;
   }
-  if(!S.waveActive&&S.auto&&S.wave>0&&!S.over){
-    S.autoT-=dt; if(S.autoT<=0) startWave();
+  if(!S.waveActive&&S.wave>0&&!S.over&&S.autoT>0){
+    S.autoT=Math.max(0,S.autoT-dt);
+    if(S.auto&&S.autoT<=0) startWave();
   }
 }
