@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Abismo de Ceniza</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="c"></canvas>
+    <div id="over"><h2>Has caído</h2><p id="overTxt"></p><button id="again">Volver a intentarlo</button></div>
+  </div>
+  <div id="panel">
+    <div class="box">
+      <h1>Abismo de Ceniza</h1>
+      <div class="sub">Construí el laberinto. Forjá las gemas. Que nada llegue al Altar.</div>
+      <div class="stats">
+        <div>Maná<b id="sMana">0</b></div>
+        <div>Vida<b id="sLives">0</b></div>
+        <div>Oleada<b id="sWave">0</b></div>
+      </div>
+    </div>
+    <div class="box">
+      <p class="lbl">Construcción</p>
+      <div class="row">
+        <button id="tCursor" class="on" title="Atajo: 3">Cursor</button>
+        <button id="tWall" title="Atajo: 1">Muro · 4</button>
+        <button id="tTower" title="Atajo: 2">Torre · 30</button>
+      </div>
+    </div>
+    <div class="box">
+      <p class="lbl">Forja de gemas · 25 maná</p>
+      <div class="shop" id="shop"></div>
+      <p class="lbl inventory-label">Inventario</p>
+      <div id="inv"></div>
+      <div class="row fuse-row"><button id="fuse">Fusionar (2 iguales)</button></div>
+      <div id="msg"></div>
+    </div>
+    <div class="box">
+      <p class="lbl">Torre</p>
+      <div id="info"></div>
+    </div>
+    <div class="box">
+      <div class="row">
+        <button id="bWave" class="wave-button">Invocar oleada (Espacio)</button>
+        <button id="bSpeed">x1</button>
+        <button id="bPause">⏸</button>
+      </div>
+      <label class="auto-label"><input type="checkbox" id="auto"> Oleadas automáticas</label>
+    </div>
+    <div class="box">
+      <details>
+        <summary>Cómo se juega</summary>
+        <p>1. Poné <b>Muros</b> y <b>Torres</b> para alargar el camino de los monstruos. No podés cerrarlo del todo.</p>
+        <p>2. Forjá una gema, seleccionala en el inventario y hacé clic en una torre para engarzarla.</p>
+        <p>3. Seleccioná dos gemas del mismo tipo y nivel y <b>fusionalas</b> para subir de nivel.</p>
+        <p>4. Clic derecho sobre un muro o torre lo vende. Los espectros vuelan e ignoran el laberinto.</p>
+        <p>Atajos: 1 muro · 2 torre · 3 cursor · Espacio oleada · P pausa · F fusionar.</p>
+      </details>
+    </div>
+  </div>
+</div>
+
+  <script src="js/config.js" defer></script>
+  <script src="js/state.js" defer></script>
+  <script src="js/gems.js" defer></script>
+  <script src="js/building.js" defer></script>
+  <script src="js/waves.js" defer></script>
+  <script src="js/combat.js" defer></script>
+  <script src="js/render.js" defer></script>
+  <script src="js/ui.js" defer></script>
+  <script src="js/input.js" defer></script>
+  <script src="js/main.js" defer></script>
+</body>
+</html>
