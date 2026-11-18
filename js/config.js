@@ -6,7 +6,7 @@ const cv=document.getElementById('c'), ctx=cv.getContext('2d');
 cv.width=W; cv.height=H;
 const SP={x:0,y:7}, GO={x:COLS-1,y:7};
 const D4=[[1,0],[-1,0],[0,1],[0,-1]];
-const MAXLVL=8, WALL_COST=4, TOWER_COST=30, GEM_COST=25, INV_MAX=24;
+const MAXLVL=8, WALL_COST=4, TOWER_COST=30, GEM_COST=25, GEM_UPGRADE_BASE_COST=25, INV_MAX=24;
 
 const GEMS={
   fuego:{name:'Brasa',color:'#ff5a2a',dmg:10,rate:0.9,range:3.0,desc:'Explota en área y deja quemadura.'},
