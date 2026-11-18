@@ -121,6 +121,13 @@ function updateHud(){
   $('waveRemaining').textContent=remainingText;
   $('waveIntermission').textContent=!S.waveActive&&S.wave>0&&S.autoT>0?'Recompensa por adelantar: +'+Math.ceil(S.autoT*2)+' maná':'';
   $('mWaveStart').textContent=S.waveActive?'En curso':'Invocar';
+  $('imMana').textContent=Math.floor(S.mana);
+  $('imLives').textContent=S.lives;
+  $('imWave').textContent=S.wave;
+  $('imWaveStart').textContent=S.waveActive?'En curso':'Invocar';
+  $('imWaveStart').disabled=S.waveActive;
+  $('imSpeed').textContent='x'+S.speed;
+  $('imPause').textContent=S.paused?'Continuar':'Pausar';
   $('mWaveStart').disabled=S.waveActive;
   $('bWave').disabled=S.waveActive;
   $('bWave').textContent=S.waveActive?'Oleada en curso':'Invocar oleada (Espacio)';
