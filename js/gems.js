@@ -20,6 +20,17 @@ function buyGem(type){
   S.inv.push({id:S.nextId++,type,lvl:1});
   refreshUI();
 }
+function upgradeSocketedGem(t){
+  if(S.over||!t||!t.gem) return;
+  if(t.gem.lvl>=MAXLVL){say('La gema ya alcanzó el nivel máximo.');return;}
+  const cost=GEM_UPGRADE_BASE_COST*t.gem.lvl;
+  if(S.mana<cost){say('Necesitás '+cost+' de maná para mejorar esta gema.');return;}
+  S.mana-=cost;
+  t.gem.lvl++;
+  S.selTower=t;
+  say(GEMS[t.gem.type].name+' mejorada a nivel '+t.gem.lvl+' por '+cost+' de maná.');
+  refreshUI();
+}
 function toggleSel(id){
   const i=S.sel.indexOf(id);
   if(i>=0) S.sel.splice(i,1);
