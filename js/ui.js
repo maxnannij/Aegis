@@ -45,6 +45,7 @@ function refreshUI(){
     } else h+='<span style="color:var(--dim)">Torre vacía. Elegí una gema del inventario y hacé clic en la torre.</span>';
     h+='<div class="row"><button id="bUn">Retirar gema</button><button id="bSell">Vender</button></div>';
     info.innerHTML=h;
+    if(t.gem&&t.gem.lvl<MAXLVL) $('bUpgrade').onclick=()=>upgradeSocketedGem(t);
     $('bUn').onclick=()=>unsocket(t);
     $('bSell').onclick=()=>sellTower(t);
   }
