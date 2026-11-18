@@ -1,49 +1,32 @@
-# Aegis
+# Abismo de Ceniza
 
-Tower defense webapp inspirado en **GemCraft Labyrinth**.
+Juego de defensa de torres en HTML5 Canvas, completamente autónomo y en español.
 
-Fusiona gemas/torres, construye defensas, protege tu orbe.
+## Jugar
 
-## Jugar (demo)
+Abrí `index.html` en un navegador moderno o publicá la raíz del repositorio con GitHub Pages:
 
-Activá GitHub Pages en el repo (Settings → Pages → branch `main` / root).
-Luego: `https://maxnannij.github.io/Aegis/`
+https://maxnannij.github.io/Aegis/
 
-## Lógica de Mapas (implementada)
+No requiere Node.js, dependencias ni proceso de compilación.
 
-- Los enemigos **solo caminan por tiles de tipo PATH**.
-- Podés colocar **muros (WALL)** sobre los caminos para forzar rutas más largas / redirigir.
-- Pathfinding con **A\*** en tiempo real.
-- Si bloqueás **todos** los accesos al orbe → el mapa queda *fully blocked*.
-- En ese estado los enemigos pasan a **modo ataque**: se dirigen a los muros que están sellando el camino y los golpean hasta destruirlos.
-- Cuando un muro cae, se recalcula el path y vuelven a caminar normalmente.
+## Controles
 
-Archivos clave:
-- `src/map.js` → grid, tiles, A*, detección de bloqueo, muros atacables
-- `src/enemy.js` → comportamiento walk / attack
+- Cursor, muro y torre: selección desde el panel o teclas 1, 2 y 3.
+- Clic/toque: seleccionar, construir o interactuar con el mapa.
+- Clic derecho: vender un muro o una torre.
+- Espacio: invocar una oleada.
+- P: pausar.
+- F: fusionar dos gemas seleccionadas.
+- En pantallas táctiles, la acción de construcción se confirma al levantar el dedo; los gestos multitáctiles cancelan la acción para evitar construcciones accidentales.
 
-## Gemas básicas
+## Contenido
 
-| Color | Nombre | Efecto principal |
-|-------|--------|------------------|
-| Amarillo | Multiple Damage | Chance de daño multiplicado |
-| Naranja | Mana Gathering | Roba mana al golpear |
-| Rojo | Bloodbound | Daño aumenta con kills |
-| Púrpura | Armor Tearing | Reduce armadura del objetivo |
-| Verde | Poisonous | Daño por tiempo (ignora armadura) |
-| Azul | Slowing | Ralentiza al enemigo |
-| Cian | Shocking | Chance de paralizar |
-| Lima | Chain Hit | Chance de golpear múltiples enemigos |
+- Mapa de 20 × 14 casillas con rutas calculadas por búsqueda en anchura.
+- Muros y torres con coste de maná.
+- Cinco familias de gemas, niveles, inventario, engarce y fusión.
+- Enemigos terrestres, veloces, resistentes, espectros voladores y jefes.
+- Oleadas manuales o automáticas, velocidad variable, pausa y récord local.
+- Gráficos, efectos y sprite incluidos en el propio HTML.
 
-## Estado actual
-
-- [x] Repositorio + estructura base
-- [x] 8 gemas básicas + sistema de fusión (esqueleto)
-- [x] Lógica de mapas, pathfinding y ataque a muros
-- [ ] Imágenes de gemas (las vas a pasar)
-- [ ] Sistema de torres / colocación de gemas
-- [ ] Oleadas, mana, orbe, etc.
-
-## Desarrollo
-
-HTML + Canvas + JS vanilla (sin build step → ideal para GitHub Pages).
+El estado de mejor oleada se guarda localmente en el navegador.
