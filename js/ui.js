@@ -60,10 +60,10 @@ function refreshUI(){
   renderMobileDrawer();
 }
 function renderMobileDrawer(){
-  const t=S.selTower, info=$('mobileTowerInfo'), gems=$('mobileGemList'), actions=$('mobileTowerActions');
-  if(!info||!gems||!actions) return;
-  if(!t){info.textContent='Tocá una torre para ver sus opciones.';gems.innerHTML='';actions.innerHTML='';return;}
-  if(t.gem){
+  const t=S.selTower, info=$('mobileTowerInfo'), gems=$('mobileGemList'), actions=$('mobileTowerActions'), shop=$('mobileGemShop');
+  if(!info||!gems||!actions||!shop) return;
+  if(!t) info.textContent='Forjá gemas o seleccioná una torre en el mapa.';
+  else if(t.gem){
     const st=gemStats(t.gem), G=GEMS[t.gem.type];
     info.innerHTML='<b style="color:'+G.color+'">'+G.name+' · nivel '+t.gem.lvl+'</b><br>Daño '+st.dmg.toFixed(0)+' · '+st.rate.toFixed(2)+'/s · Alcance '+st.range.toFixed(1)+'<br><span style="color:var(--dim)">'+effectText(t.gem)+'</span>';
   }else info.innerHTML='<span style="color:var(--dim)">Torre vacía. Elegí una gema para engarzarla.</span>';
@@ -72,16 +72,24 @@ function renderMobileDrawer(){
     const d=document.createElement('div');
     d.className='gi';d.title=GEMS[g.type].name+' nv.'+g.lvl;
     d.innerHTML='<div class="g" style="background:radial-gradient(circle at 35% 30%,#fff8,'+GEMS[g.type].color+' 55%)"></div><span>'+g.lvl+'</span>';
-    d.onclick=()=>{S.sel=[g.id];socket(t);openTowerDrawer(t);};
+    d.onclick=()=>{if(S.selTower){S.sel=[g.id];socket(S.selTower);openTowerDrawer(S.selTower);}else toggleSel(g.id);};
     gems.appendChild(d);
   }
+  shop.innerHTML='';
+  for(const k of GKEYS){
+    const b=document.createElement('button');b.innerHTML='<span class="dot" style="background:'+GEMS[k].color+'"></span>'+GEMS[k].name;
+    b.disabled=S.mana<GEM_COST||S.inv.length>=INV_MAX;b.onclick=()=>{buyGem(k);openTowerDrawer(S.selTower);};shop.appendChild(b);
+  }
+  $('mobileFuse').disabled=!(S.sel.length===2&&(()=>{const a=S.inv.find(g=>g.id===S.sel[0]),b=S.inv.find(g=>g.id===S.sel[1]);return a&&b&&a.type===b.type&&a.lvl===b.lvl&&a.lvl<MAXLVL;})());
   actions.innerHTML='';
   const add=(label,fn,disabled=false)=>{const b=document.createElement('button');b.textContent=label;b.disabled=disabled;b.onclick=fn;actions.appendChild(b);};
-  if(t.gem){
-    if(t.gem.lvl<MAXLVL)add('Mejorar gema · '+(GEM_UPGRADE_BASE_COST*t.gem.lvl)+' maná',()=>upgradeSocketedGem(t),S.mana<GEM_UPGRADE_BASE_COST*t.gem.lvl);
-    add('Retirar gema',()=>{unsocket(t);openTowerDrawer(t);},S.inv.length>=INV_MAX);
+  if(t){
+    if(t.gem){
+      if(t.gem.lvl<MAXLVL)add('Mejorar gema · '+(GEM_UPGRADE_BASE_COST*t.gem.lvl)+' maná',()=>upgradeSocketedGem(t),S.mana<GEM_UPGRADE_BASE_COST*t.gem.lvl);
+      add('Retirar gema',()=>{unsocket(t);openTowerDrawer(t);},S.inv.length>=INV_MAX);
+    }
+    add('Vender torre · +18 maná',()=>{sellTower(t);closeTowerDrawer();});
   }
-  add('Vender torre · +18 maná',()=>{sellTower(t);closeTowerDrawer();});
 }
 function openTowerDrawer(t){
   if(t) S.selTower=t;
