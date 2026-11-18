@@ -88,3 +88,65 @@ label{font-size:12px;color:var(--dim);display:flex;align-items:center;gap:4px;cu
 @media(hover:none){
   button:hover{border-color:var(--line)}
 }
+
+
+/* Progreso de oleadas */
+.wave-progress-line,.wave-progress-meta{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:12px}
+.wave-progress-line b{color:var(--gold);font-weight:normal}
+.wave-progress-line span,.wave-progress-meta{color:var(--dim)}
+.progress-track{height:8px;margin:7px 0;background:#09070e;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.progress-track i{display:block;width:0;height:100%;background:linear-gradient(90deg,#8c5ac7,var(--gold));transition:width .2s}
+.wave-actions{margin-top:8px}
+.wave-actions button{width:100%}
+button:disabled{opacity:.4;cursor:not-allowed}
+
+/* Estructura móvil horizontal: interfaz propia, tablero protagonista. */
+#mobileHud,#mobileControls,#rotateNotice,#cellMenu,#drawerShade,#towerDrawer{display:none}
+@media(max-width:900px) and (pointer:coarse){
+  html,body{width:100%;height:100%;min-height:100%;overflow:hidden}
+  body{padding:0;display:block}
+  #app{position:relative;width:100%;height:100dvh;max-width:none;display:flex;flex-direction:column;flex-wrap:nowrap;gap:0;align-items:stretch;justify-content:flex-start;overflow:hidden}
+  #panel{display:none!important}
+  #mobileHud{display:flex;flex:0 0 auto;flex-direction:column;gap:4px;padding:calc(env(safe-area-inset-top) + 5px) 10px 6px;background:#100d17;border-bottom:1px solid var(--line);z-index:4}
+  .mobile-brand{font-size:11px;letter-spacing:2px;color:var(--gold)}
+  .mobile-stats{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--dim)}
+  .mobile-stats b{color:var(--txt);font-weight:normal}
+  .mobile-progress{min-width:0}
+  .mobile-progress .progress-track{margin:3px 0 0;height:6px}
+  .progress-line{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--dim)}
+  .progress-line b{font-weight:normal;color:var(--txt)}
+  #stage{position:relative;display:flex;align-items:center;justify-content:center;flex:1 1 auto;width:100%;max-width:none;min-width:0;min-height:0;overflow:hidden;background:#050409}
+  #stage canvas{display:block;width:auto;height:auto;max-width:100%;max-height:100%;border:0;border-radius:0;object-fit:contain}
+  #mobileControls{display:flex;flex:0 0 auto;gap:6px;padding:7px 8px calc(env(safe-area-inset-bottom) + 7px);background:#100d17;border-top:1px solid var(--line);z-index:4}
+  #mobileControls button{flex:1 1 0;min-width:0;min-height:46px;padding:5px 4px;font-size:12px;white-space:nowrap}
+  #mobileControls #mWaveStart{flex:1.3 1 0;border-color:var(--gold);color:#f2d59b}
+  #mobileControls #mAdvance{font-size:10px}
+  #cellMenu{position:fixed;z-index:20;min-width:150px;max-width:210px;padding:7px;background:#171220;border:1px solid var(--gold);border-radius:8px;box-shadow:0 8px 30px #000b;gap:5px;flex-direction:column}
+  #cellMenu.open{display:flex}
+  #cellMenu button{width:100%;min-height:40px;text-align:left}
+  #drawerShade{position:fixed;inset:0;background:#0009;z-index:24}
+  #drawerShade.open{display:block}
+  #towerDrawer{display:flex;position:fixed;z-index:25;top:0;right:0;bottom:0;width:min(44vw,390px);min-width:250px;max-width:90vw;flex-direction:column;gap:10px;padding:calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 10px);overflow-y:auto;background:#15111d;border-left:1px solid var(--gold);transform:translateX(105%);transition:transform .2s ease}
+  #towerDrawer.open{transform:translateX(0)}
+  .drawer-head{display:flex;align-items:center;justify-content:space-between;color:var(--gold);font-size:17px}
+  .drawer-head button{min-width:42px;min-height:42px}
+  #mobileTowerInfo{font-size:13px;line-height:1.5}
+  #mobileGemList{display:flex;flex-wrap:wrap;gap:7px}
+  #mobileGemList .gi{width:46px;height:46px}
+  #mobileTowerActions{display:flex;flex-wrap:wrap;gap:6px}
+  #mobileTowerActions button{flex:1 1 100%;min-height:42px}
+  #rotateNotice{position:fixed;inset:0;z-index:100;background:#09080d;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px}
+  #rotateNotice h2{font-weight:normal;color:var(--gold);font-size:22px}
+  #rotateNotice p{color:var(--dim);font-size:14px}
+  .rotate-icon{font-size:48px;color:var(--gold);animation:rotate-phone 2s ease-in-out infinite}
+  @keyframes rotate-phone{0%,20%{transform:rotate(0)}60%,80%{transform:rotate(90deg)}100%{transform:rotate(90deg)}}
+  body.mobile-portrait #rotateNotice{display:flex}
+  body.mobile-portrait #mobileHud,body.mobile-portrait #stage,body.mobile-portrait #mobileControls{visibility:hidden}
+  body.mobile-portrait #towerDrawer,body.mobile-portrait #drawerShade,body.mobile-portrait #cellMenu{display:none!important}
+}
+@media(max-width:900px) and (pointer:coarse) and (orientation:portrait){
+  #rotateNotice{display:flex}
+}
+@media(max-width:900px) and (pointer:coarse) and (orientation:landscape){
+  #rotateNotice{display:none}
+}
