@@ -150,3 +150,10 @@ button:disabled{opacity:.4;cursor:not-allowed}
 @media(max-width:900px) and (pointer:coarse) and (orientation:landscape){
   #rotateNotice{display:none}
 }
+
+@media(max-width:900px) and (pointer:coarse){
+  #mobileGemShop{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  #mobileGemShop button{display:flex;align-items:center;gap:6px;min-height:40px;text-align:left;font-size:12px}
+  #mobileFuse{width:100%;min-height:42px}
+  #mobileTowerActions{padding-bottom:8px}
+}
